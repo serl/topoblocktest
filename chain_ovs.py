@@ -30,7 +30,7 @@ if settings['n_ovs'] > 0:
     Link.declare((ns2, '10.113.1.2'), ovss[-1], link_type=settings['ovs_ns'])
 
 else:
-    Link.declare((ns1, '310.113.1.1'), (ns2, '10.113.1.2'))
+    Link.declare((ns1, '10.113.1.1'), (ns2, '10.113.1.2'))
 
 topo_definitions = m.get_script()
 
