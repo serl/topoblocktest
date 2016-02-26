@@ -7,7 +7,7 @@ def add_comment(action):
     @wrapt.decorator
     def wrapper(wrapped, instance, args, kwargs):
         def _execute(*args, **kwargs):
-            return "echo " + action + " " + instance.description + "\n" + wrapped(*args, **kwargs)
+            return "echo \"" + action + " " + instance.description + "\"\n" + wrapped(*args, **kwargs)
         return _execute(*args, **kwargs)
     return wrapper
 
@@ -59,12 +59,11 @@ class Container(Entity):
 
 class Netns(Container):
     __shortname = 'ns'
-    def __init__(self, name):
+    def __init__(self, name=None):
         super().__init__()
         self.name = name
     def create(self):
         return super().create() + "ip netns add {self.name}".format(self=self)
-        #return "ovs-vsctl add-br {name} && ip link set dev {name} up && ip address add {ip_address}/{cidr} dev {name}".format(self=self)
     def destroy(self):
         return super().destroy() + "ip netns delete {self.name}".format(self=self)
 
@@ -315,7 +314,7 @@ class Master:
         self.assign_attributes()
         return self.__get_commands(self.entities, 'create') + self.__get_commands(self.links, 'create')
     def cleanup(self):
-        return self.__get_commands(self.entities, 'destroy') + self.__get_commands(self.links, 'destroy')
+        return self.__get_commands(self.links, 'destroy') + self.__get_commands(self.entities, 'destroy')
 
     def get_script(self):
         return "\n".join(['function opg_setup {'] + self.setup() + ['}', ''] + ['function opg_cleanup {'] + self.cleanup()  + ['sleep 1', '}', ''])
