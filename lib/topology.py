@@ -334,7 +334,7 @@ class Master:
         return self.__get_commands(self.links, 'destroy') + self.__get_commands(self.entities, 'destroy')
 
     def get_script(self):
-        res = CommandBlock()
+        res = CommandBlock.root_check()
         res += 'function opg_setup {'
         res += 'set -e'
         res += self.setup()

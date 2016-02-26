@@ -1,6 +1,9 @@
 import subprocess
 
 class CommandBlock:
+    @classmethod
+    def root_check(cls):
+        return cls() + 'if [ $EUID -ne 0 ]; then echo "root account required!"; exit 1; fi'
     def __init__(self):
         self.__commands = []
     def format(self, *args, **kwargs):
