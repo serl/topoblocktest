@@ -1,5 +1,6 @@
 import sys
 from lib.topology import Master, OVS, Netns, Link
+from lib.bash import CommandBlock
 
 try:
     settings = {
@@ -34,15 +35,20 @@ else:
 
 topo_definitions = m.get_script()
 
+script = CommandBlock()
+script += '#!/bin/bash'
+script += topo_definitions
+script += 'trap opg_cleanup EXIT'
+script += 'opg_setup'
+script += ''
 
-script = '#!/bin/bash\n'+topo_definitions+'trap opg_cleanup EXIT\nopg_setup\n'
 #topology check
-topology = 'ovs-vsctl show > results/{id}-{n_ovs}-{ovs_ovs}-{ovs_ns}_topology\n'
-topology += 'echo -e "\\nip a on x-ns1" >> results/{id}-{n_ovs}-{ovs_ovs}-{ovs_ns}_topology\n'
-topology += 'ip netns exec x-ns1 ip a >> results/{id}-{n_ovs}-{ovs_ovs}-{ovs_ns}_topology\n'
-topology += 'echo -e "\\nip a on x-ns2" >> results/{id}-{n_ovs}-{ovs_ovs}-{ovs_ns}_topology\n'
-topology += 'ip netns exec x-ns2 ip a >> results/{id}-{n_ovs}-{ovs_ovs}-{ovs_ns}_topology\n'
-
+topology = CommandBlock()
+topology += 'ovs-vsctl show > results/{id}-{n_ovs}-{ovs_ovs}-{ovs_ns}_topology'
+topology += 'echo -e "\\nip a on x-ns1" >> results/{id}-{n_ovs}-{ovs_ovs}-{ovs_ns}_topology'
+topology += 'ip netns exec x-ns1 ip a >> results/{id}-{n_ovs}-{ovs_ovs}-{ovs_ns}_topology'
+topology += 'echo -e "\\nip a on x-ns2" >> results/{id}-{n_ovs}-{ovs_ovs}-{ovs_ns}_topology'
+topology += 'ip netns exec x-ns2 ip a >> results/{id}-{n_ovs}-{ovs_ovs}-{ovs_ns}_topology'
 script += topology.format(**settings)
 
 settings['repetitions'] = 10

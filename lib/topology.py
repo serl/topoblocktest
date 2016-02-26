@@ -1,4 +1,5 @@
 import re, wrapt
+from .bash import CommandBlock
 
 class ConfigurationError(Exception):
     pass
@@ -7,7 +8,7 @@ def add_comment(action):
     @wrapt.decorator
     def wrapper(wrapped, instance, args, kwargs):
         def _execute(*args, **kwargs):
-            return "echo \"" + action + " " + instance.description + "\"\n" + wrapped(*args, **kwargs)
+            return CommandBlock() + '' + 'echo "{} {}"'.format(action, instance.description) + wrapped(*args, **kwargs)
         return _execute(*args, **kwargs)
     return wrapper
 
@@ -21,10 +22,10 @@ class Entity:
     @add_comment('creating')
     def create(self):
         self.check_configuration()
-        return ""
+        return CommandBlock()
     @add_comment('destroying')
     def destroy(self):
-        return ""
+        return CommandBlock()
     def check_configuration(self):
         if self.name is None:
             raise ConfigurationError("name is missing")
@@ -146,10 +147,10 @@ class Link:
         e2.entity.links.append(self)
     @add_comment('creating')
     def create(self):
-        return ""
+        return CommandBlock()
     @add_comment('destroying')
     def destroy(self):
-        return ""
+        return CommandBlock()
     @property
     def description(self):
         return "link between {self.e1.entity.name} and {self.e2.entity.name} of type {self.__class__.__name__} ({self.e1.name} to {self.e2.name})".format(self=self)
@@ -182,15 +183,15 @@ class Link_OVS_OVS_veth(Link):
             self.e2.name = 'veth-ovs-{e2.entity.name_id}-{e1.entity.name_id}'.format(**self.__dict__)
     def create(self):
         self.assign_attributes()
+        cmds = CommandBlock()
         #create the links
-        cmds = "ip link add {e1.name} type veth peer name {e2.name} && \n"
+        cmds += "ip link add {e1.name} type veth peer name {e2.name}"
         #configure one side
-        cmds += "ovs-vsctl add-port {e1.entity.name} {e1.name} && "
+        cmds += "ovs-vsctl add-port {e1.entity.name} {e1.name}"
         cmds += "ip link set {e1.name} up"
-        cmds += " && \n"
         #configure the other side
-        cmds += "ovs-vsctl add-port {e2.entity.name} {e2.name} && "
-        cmds += "ip link set {e2.name} up"
+        cmds += "ovs-vsctl add-port {e2.entity.name} {e2.name}"
+        cmds += "ip link set {e2.name}"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
@@ -206,12 +207,12 @@ class Link_OVS_OVS_patch(Link):
             self.e2.name = 'patch-{e1.entity.name}-{e2.entity.name_id}'.format(**self.__dict__)
     def create(self):
         self.assign_attributes()
-        cmds = "ovs-vsctl add-port {e1.entity.name} {e1.name} -- set Interface {e1.name} type=patch options:peer={e2.name} && "
-        cmds += "ovs-vsctl add-port {e2.entity.name} {e2.name} -- set Interface {e2.name} type=patch options:peer={e1.name}"
+        cmds = CommandBlock()
+        cmds = "ovs-vsctl add-port {e1.entity.name} {e1.name} -- set Interface {e1.name} type=patch options:peer={e2.name}"
+        cmds = "ovs-vsctl add-port {e2.entity.name} {e2.name} -- set Interface {e2.name} type=patch options:peer={e1.name}"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
-        self.assign_attributes()
-        return super().destroy() + "# destroyed by the bridge".format(**self.__dict__)
+        return None # destroyed by the bridge
 
 
 class Link_OVS_Netns_veth(Link):
@@ -225,16 +226,17 @@ class Link_OVS_Netns_veth(Link):
             self.e2.name = 'v-{}'.format(self.e1.entity.name)
     def create(self):
         self.assign_attributes()
+        cmds = CommandBlock()
         #create the links
-        cmds = "ip link add {e1.name} type veth peer name {e2.name} && \n"
+        cmds += "ip link add {e1.name} type veth peer name {e2.name}"
         #configure ovs side
-        cmds += "ovs-vsctl add-port {e1.entity.name} {e1.name} && "
-        cmds += "ip link set {e1.name} up && \n"
+        cmds += "ovs-vsctl add-port {e1.entity.name} {e1.name}"
+        cmds += "ip link set {e1.name} up"
         #configure namespace side
-        cmds += "ip link set {e2.name} netns {e2.entity.name} && "
+        cmds += "ip link set {e2.name} netns {e2.entity.name}"
         cmds += "ip netns exec {e2.entity.name} ip link set dev {e2.name} up"
         if self.e2.ip_address is not None:
-            cmds += " && ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
+            cmds += "ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
@@ -249,15 +251,15 @@ class Link_OVS_Netns_port(Link):
             self.e2.name = 'p-{e1.entity.name}-{e2.entity.name_id}'.format(**self.__dict__)
     def create(self):
         self.assign_attributes()
-        cmds = "ovs-vsctl add-port {e1.entity.name} {e2.name} -- set Interface {e2.name} type=internal && "
-        cmds += "ip link set {e2.name} netns {e2.entity.name} && "
+        cmds = CommandBlock()
+        cmds += "ovs-vsctl add-port {e1.entity.name} {e2.name} -- set Interface {e2.name} type=internal"
+        cmds += "ip link set {e2.name} netns {e2.entity.name}"
         cmds += "ip netns exec {e2.entity.name} ip link set dev {e2.name} up"
         if self.e2.ip_address is not None:
-            cmds += " && ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
+            cmds += "ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
-        self.assign_attributes()
-        return super().destroy() + "# destroyed by the bridge".format(**self.__dict__)
+        return None # destroyed by the bridge
 
 class Link_Netns_Netns_veth(Link):
     def __init__(self, e1, e2, **kwargs):
@@ -270,19 +272,19 @@ class Link_Netns_Netns_veth(Link):
             self.e2.name = 'veth-ns-{e2.entity.name_id}-{e1.entity.name_id}'.format(**self.__dict__)
     def create(self):
         self.assign_attributes()
+        cmds = CommandBlock()
         #create the links
-        cmds = "ip link add {e1.name} type veth peer name {e2.name} && \n"
+        cmds += "ip link add {e1.name} type veth peer name {e2.name}"
         #configure one side
-        cmds += "ip link set {e1.name} netns {e1.entity.name} && "
+        cmds += "ip link set {e1.name} netns {e1.entity.name}"
         cmds += "ip netns exec {e1.entity.name} ip link set dev {e1.name} up"
         if self.e1.ip_address is not None:
-            cmds += " && ip netns exec {e1.entity.name} ip address add {e1.ip_address}/{e1.ip_size} dev {e1.name}"
-        cmds += " && \n"
+            cmds += "ip netns exec {e1.entity.name} ip address add {e1.ip_address}/{e1.ip_size} dev {e1.name}"
         #configure the other side
-        cmds += "ip link set {e2.name} netns {e2.entity.name} && "
+        cmds += "ip link set {e2.name} netns {e2.entity.name}"
         cmds += "ip netns exec {e2.entity.name} ip link set dev {e2.name} up"
         if self.e2.ip_address is not None:
-            cmds += " && ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
+            cmds += "ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
@@ -321,9 +323,9 @@ class Master:
         return set(links)
 
     def __get_commands(self, collection, fn):
-        commands = []
+        commands = CommandBlock()
         for obj in collection:
-            commands.append(getattr(obj, fn)())
+            commands += getattr(obj, fn)()
         return commands
     def setup(self):
         self.assign_attributes()
@@ -332,4 +334,17 @@ class Master:
         return self.__get_commands(self.links, 'destroy') + self.__get_commands(self.entities, 'destroy')
 
     def get_script(self):
-        return "\n".join(['function opg_setup {'] + self.setup() + ['}', ''] + ['function opg_cleanup {'] + self.cleanup()  + ['sleep 1', '}', ''])
+        res = CommandBlock()
+        res += 'function opg_setup {'
+        res += 'set -e'
+        res += self.setup()
+        res += ''
+        res += 'set +e'
+        res += '}'
+        res += ''
+        res += 'function opg_cleanup {'
+        res += self.cleanup()
+        res += ''
+        res += 'sleep 1'
+        res += '}'
+        return res
