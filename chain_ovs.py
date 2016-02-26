@@ -68,4 +68,4 @@ for mss in ((1460),): #536
     kill $IPERF_PID && sleep 1
     """.format(**settings) #--mss {mss} seems not to work :/
 
-print(script)
+script.run()

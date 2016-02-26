@@ -1,3 +1,5 @@
+import subprocess
+
 class CommandBlock:
     def __init__(self):
         self.__commands = []
@@ -6,6 +8,10 @@ class CommandBlock:
         for c in self.__commands:
             res += c.format(*args, **kwargs)
         return res
+    def run(self):
+        proc = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, universal_newlines=True)
+        proc.communicate(str(self))
+        return proc.returncode
     def __iter__(self):
         return self.__commands.__iter__()
     def __next__(self):
@@ -37,11 +43,11 @@ class CommandBlock:
 
 if __name__ == '__main__':
     c = CommandBlock()
-    c += 'uno'
-    d = c + 'quattro'
-    e = d + ['bau', 'miao']
+    c += 'echo one'
+    d = c + 'echo two'
+    e = d + ['echo three', 'echo four']
     f = e + c
-    g = 'newone' + f
+    g = 'echo zero' + f
     print(c)
     print()
     print(d)
@@ -51,3 +57,6 @@ if __name__ == '__main__':
     print(f)
     print()
     print(g)
+    print()
+    print('executing the last block')
+    print('exit value: {}'.format(g.run()))
