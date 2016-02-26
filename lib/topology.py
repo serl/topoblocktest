@@ -73,56 +73,77 @@ class DockerContainer(Container):
 
 class Bridge(Entity):
     pass
-    # __shortname = 'br'
-    # def check_configuration(self):
-    #     super().check_configuration()
-    #     if self.ip_address is None:
-    #         raise ConfigurationError("ip_address is missing")
 
 class OVS(Bridge):
     __shortname = 'ovs'
-    def __init__(self, name=None, ip_address=None, cidr=24):
+    def __init__(self, name=None):
         super().__init__()
         self.name = name
-        # self.ip_address = ip_address
-        # self.cidr = cidr
     def create(self):
         return super().create() + "ovs-vsctl add-br {self.name}".format(self=self)
-        #return "ovs-vsctl add-br {name} && ip link set dev {name} up && ip address add {ip_address}/{cidr} dev {name}".format(self=self)
     def destroy(self):
         return super().destroy() + "ovs-vsctl del-br {self.name}".format(self=self)
 
 
+class Endpoint:
+    @classmethod
+    def get(cls, arg):
+        if isinstance(arg, cls):
+            return arg
+        if isinstance(arg, Entity):
+            return cls(arg)
+        if isinstance(arg, tuple):
+            return cls(*arg)
+    def __init__(self, entity, ip_address=None, name=None):
+        self.entity = entity
+        self.name = name
+        self.ip_address = None
+        self.ip_size = None
+        if ip_address is not None:
+            if '/' in ip_address:
+                parts = ip_address.split('/')
+                self.ip_address = parts[0]
+                self.ip_size = int(parts[1])
+            else:
+                self.ip_address = ip_address
+                self.ip_size = 24
+
+
 class Link:
     @staticmethod
-    def declare(e1, e2, *args, **kwargs):
-        if e1.__class__ is OVS and e2.__class__ is OVS:
-            if 'type' not in kwargs:
-                kwargs['type'] = 'patch'
-            if kwargs['type'] == 'veth':
+    def declare(e1, e2, link_type=None, *args, **kwargs):
+        e1 = Endpoint.get(e1)
+        e2 = Endpoint.get(e2)
+
+        if type(e1.entity) is OVS and type(e2.entity) is OVS:
+            if link_type is None:
+                link_type = 'patch'
+            if link_type == 'veth':
                 return Link_OVS_OVS_veth(e1, e2, *args, **kwargs)
-            elif kwargs['type'] == 'patch':
+            elif link_type == 'patch':
                 return Link_OVS_OVS_patch(e1, e2, *args, **kwargs)
             else:
-                raise ConfigurationError('unrecognized type: {}'.format(kwargs['type']))
-        if (e1.__class__ is OVS and e2.__class__ is Netns) or (e1.__class__ is Netns and e2.__class__ is OVS):
+                raise ConfigurationError('unrecognized type: {}'.format(link_type))
+        if (type(e1.entity) is OVS and type(e2.entity) is Netns) or (type(e1.entity) is Netns and type(e2.entity) is OVS):
             #make sure e1 is the OVS
-            if e1.__class__ is Netns and e2.__class__ is OVS:
+            if type(e1.entity) is Netns and type(e2.entity) is OVS:
                 e2, e1 = e1, e2
-            if 'type' not in kwargs:
-                kwargs['type'] = 'port'
-            if kwargs['type'] == 'veth':
+            if link_type is None:
+                link_type = 'port'
+            if link_type == 'veth':
                 return Link_OVS_Netns_veth(e1, e2, *args, **kwargs)
-            elif kwargs['type'] == 'port':
+            elif link_type == 'port':
                 return Link_OVS_Netns_port(e1, e2, *args, **kwargs)
             else:
-                raise ConfigurationError('unrecognized type: {}'.format(kwargs['type']))
+                raise ConfigurationError('unrecognized type: {}'.format(link_type))
+        if type(e1.entity) is Netns and type(e2.entity) is Netns:
+            return Link_Netns_Netns_veth(e1, e2, *args, **kwargs)
 
     def __init__(self, e1, e2):
         self.e1 = e1
         self.e2 = e2
-        e1.links.append(self)
-        e2.links.append(self)
+        e1.entity.links.append(self)
+        e2.entity.links.append(self)
     @add_comment('creating')
     def create(self):
         return ""
@@ -131,7 +152,7 @@ class Link:
         return ""
     @property
     def description(self):
-        return "link between {} and {} of type {}".format(self.e1.name, self.e2.name, self.__class__.__name__)
+        return "link between {self.e1.entity.name} and {self.e2.entity.name} of type {self.__class__.__name__} ({self.e1.name} to {self.e2.name})".format(self=self)
 
     def __str__(self):
         return self.description
@@ -140,6 +161,7 @@ class Link:
 
     # ensure no double links are configured (they'll be skipped by Master)
     # links will be skipped EVEN IF they're of DIFFERENT TYPES
+    # but they are NOT skipped if they have different ip addresses
     def __key(self):
         return tuple( sorted([hash(self.e1), hash(self.e2)]) )
     def __hash__(self):
@@ -150,46 +172,42 @@ class Link:
         return not self.__eq__(other)
 
 class Link_OVS_OVS_veth(Link):
-    def __init__(self, e1, e2, name_1_to_2=None, name_2_to_1=None, **kwargs):
+    def __init__(self, e1, e2, **kwargs):
         super().__init__(e1, e2)
-        self.name_1_to_2 = name_1_to_2
-        self.name_2_to_1 = name_2_to_1
     def assign_attributes(self):
         # veth names are limited to 15 chars(!)
-        if self.name_1_to_2 is None:
-            self.name_1_to_2 = 'veth-ovs-{e1.name_id}-{e2.name_id}'.format(**self.__dict__)
-        if self.name_2_to_1 is None:
-            self.name_2_to_1 = 'veth-ovs-{e2.name_id}-{e1.name_id}'.format(**self.__dict__)
+        if self.e1.name is None:
+            self.e1.name = 'veth-ovs-{e1.entity.name_id}-{e2.entity.name_id}'.format(**self.__dict__)
+        if self.e2.name is None:
+            self.e2.name = 'veth-ovs-{e2.entity.name_id}-{e1.entity.name_id}'.format(**self.__dict__)
     def create(self):
         self.assign_attributes()
         #create the links
-        cmds = "ip link add {name_1_to_2} type veth peer name {name_2_to_1} && \n"
+        cmds = "ip link add {e1.name} type veth peer name {e2.name} && \n"
         #configure one side
-        cmds += "ovs-vsctl add-port {e1.name} {name_1_to_2} && "
-        cmds += "ip link set {name_1_to_2} up"
+        cmds += "ovs-vsctl add-port {e1.entity.name} {e1.name} && "
+        cmds += "ip link set {e1.name} up"
         cmds += " && \n"
         #configure the other side
-        cmds += "ovs-vsctl add-port {e2.name} {name_2_to_1} && "
-        cmds += "ip link set {name_2_to_1} up"
+        cmds += "ovs-vsctl add-port {e2.entity.name} {e2.name} && "
+        cmds += "ip link set {e2.name} up"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
-        return super().destroy() + "ip link delete {name_1_to_2}".format(**self.__dict__)
+        return super().destroy() + "ip link delete {e1.name}".format(**self.__dict__)
 
 class Link_OVS_OVS_patch(Link):
-    def __init__(self, e1, e2, name_1_to_2=None, name_2_to_1=None, **kwargs):
+    def __init__(self, e1, e2, **kwargs):
         super().__init__(e1, e2)
-        self.name_1_to_2 = name_1_to_2
-        self.name_2_to_1 = name_2_to_1
     def assign_attributes(self):
-        if self.name_1_to_2 is None:
-            self.name_1_to_2 = 'patch-{e2.name}-{e1.name_id}'.format(**self.__dict__)
-        if self.name_2_to_1 is None:
-            self.name_2_to_1 = 'patch-{e1.name}-{e2.name_id}'.format(**self.__dict__)
+        if self.e1.name is None:
+            self.e1.name = 'patch-{e2.entity.name}-{e1.entity.name_id}'.format(**self.__dict__)
+        if self.e2.name is None:
+            self.e2.name = 'patch-{e1.entity.name}-{e2.entity.name_id}'.format(**self.__dict__)
     def create(self):
         self.assign_attributes()
-        cmds = "ovs-vsctl add-port {e1.name} {name_1_to_2} -- set Interface {name_1_to_2} type=patch options:peer={name_2_to_1} && "
-        cmds += "ovs-vsctl add-port {e2.name} {name_2_to_1} -- set Interface {name_2_to_1} type=patch options:peer={name_1_to_2}"
+        cmds = "ovs-vsctl add-port {e1.entity.name} {e1.name} -- set Interface {e1.name} type=patch options:peer={e2.name} && "
+        cmds += "ovs-vsctl add-port {e2.entity.name} {e2.name} -- set Interface {e2.name} type=patch options:peer={e1.name}"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
@@ -198,80 +216,77 @@ class Link_OVS_OVS_patch(Link):
 
 class Link_OVS_Netns_veth(Link):
     # e1 is the ovs, e2 is the netns
-    def __init__(self, e1, e2, name_ovs_side=None, name_netns_side=None, ip_address=None, **kwargs):
+    def __init__(self, e1, e2, **kwargs):
         super().__init__(e1, e2)
-        self.name_ovs_side = name_ovs_side
-        self.name_netns_side = name_netns_side
-        self.ip_address = ip_address
     def assign_attributes(self):
-        if self.name_ovs_side is None:
-            self.name_ovs_side = 'v-{}'.format(self.e2.name)
-        if self.name_netns_side is None:
-            self.name_netns_side = 'v-{}'.format(self.e1.name)
+        if self.e1.name is None:
+            self.e1.name = 'v-{}'.format(self.e2.entity.name)
+        if self.e2.name is None:
+            self.e2.name = 'v-{}'.format(self.e1.entity.name)
     def create(self):
         self.assign_attributes()
         #create the links
-        cmds = "ip link add {name_ovs_side} type veth peer name {name_netns_side} && \n"
+        cmds = "ip link add {e1.name} type veth peer name {e2.name} && \n"
         #configure ovs side
-        cmds += "ovs-vsctl add-port {e1.name} {name_ovs_side} && "
-        cmds += "ip link set {name_ovs_side} up && \n"
+        cmds += "ovs-vsctl add-port {e1.entity.name} {e1.name} && "
+        cmds += "ip link set {e1.name} up && \n"
         #configure namespace side
-        cmds += "ip link set {name_netns_side} netns {e2.name} && "
-        cmds += "ip netns exec {e2.name} ip link set dev {name_netns_side} up"
-        if self.ip_address is not None:
-            cmds += " && ip netns exec {e2.name} ip address add {ip_address}/24 dev {name_netns_side}"
+        cmds += "ip link set {e2.name} netns {e2.entity.name} && "
+        cmds += "ip netns exec {e2.entity.name} ip link set dev {e2.name} up"
+        if self.e2.ip_address is not None:
+            cmds += " && ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
-        return super().destroy() + "ip link delete {name_ovs_side}".format(**self.__dict__)
+        return super().destroy() + "ip link delete {e1.name}".format(**self.__dict__)
 
 class Link_OVS_Netns_port(Link):
     # e1 is the ovs, e2 is the netns
-    def __init__(self, e1, e2, name_netns_side=None, ip_address=None, **kwargs):
+    def __init__(self, e1, e2, **kwargs):
         super().__init__(e1, e2)
-        self.name_netns_side = name_netns_side
-        self.ip_address = ip_address
     def assign_attributes(self):
-        if self.name_netns_side is None:
-            self.name_netns_side = 'p-{e1.name}-{e2.name_id}'.format(**self.__dict__)
+        if self.e2.name is None:
+            self.e2.name = 'p-{e1.entity.name}-{e2.entity.name_id}'.format(**self.__dict__)
     def create(self):
         self.assign_attributes()
-        cmds = "ovs-vsctl add-port {e1.name} {name_netns_side} -- set Interface {name_netns_side} type=internal && "
-        cmds += "ip link set {name_netns_side} netns {e2.name} && "
-        cmds += "ip netns exec {e2.name} ip link set dev {name_netns_side} up"
-        if self.ip_address is not None:
-            cmds += " && ip netns exec {e2.name} ip address add {ip_address}/24 dev {name_netns_side}"
+        cmds = "ovs-vsctl add-port {e1.entity.name} {e2.name} -- set Interface {e2.name} type=internal && "
+        cmds += "ip link set {e2.name} netns {e2.entity.name} && "
+        cmds += "ip netns exec {e2.entity.name} ip link set dev {e2.name} up"
+        if self.e2.ip_address is not None:
+            cmds += " && ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
         return super().destroy() + "# destroyed by the bridge".format(**self.__dict__)
 
 class Link_Netns_Netns_veth(Link):
-    def __init__(self, e1, e2, name_1_to_2=None, name_2_to_1=None, **kwargs):
+    def __init__(self, e1, e2, **kwargs):
         super().__init__(e1, e2)
-        self.name_1_to_2 = name_1_to_2
-        self.name_2_to_1 = name_2_to_1
     def assign_attributes(self):
         # veth names are limited to 15 chars(!)
-        if self.name_1_to_2 is None:
-            self.name_1_to_2 = 'veth-ns-{e1.name_id}-{e2.name_id}'.format(**self.__dict__)
-        if self.name_2_to_1 is None:
-            self.name_2_to_1 = 'veth-ns-{e2.name_id}-{e1.name_id}'.format(**self.__dict__)
+        if self.e1.name is None:
+            self.e1.name = 'veth-ns-{e1.entity.name_id}-{e2.entity.name_id}'.format(**self.__dict__)
+        if self.e2.name is None:
+            self.e2.name = 'veth-ns-{e2.entity.name_id}-{e1.entity.name_id}'.format(**self.__dict__)
     def create(self):
         self.assign_attributes()
         #create the links
-        cmds = "ip link add {name_1_to_2} type veth peer name {name_2_to_1} && \n"
+        cmds = "ip link add {e1.name} type veth peer name {e2.name} && \n"
         #configure one side
-        cmds += "ip link set {name_1_to_2} netns {e1.name} && "
-        cmds += "ip netns exec {e1.name} ip link set dev {name_1_to_2} up"
+        cmds += "ip link set {e1.name} netns {e1.entity.name} && "
+        cmds += "ip netns exec {e1.entity.name} ip link set dev {e1.name} up"
+        if self.e1.ip_address is not None:
+            cmds += " && ip netns exec {e1.entity.name} ip address add {e1.ip_address}/{e1.ip_size} dev {e1.name}"
         cmds += " && \n"
         #configure the other side
-        cmds += "ip link set {name_2_to_1} netns {e2.name} && "
-        cmds += "ip netns exec {e2.name} ip link set dev {name_2_to_1} up"
+        cmds += "ip link set {e2.name} netns {e2.entity.name} && "
+        cmds += "ip netns exec {e2.entity.name} ip link set dev {e2.name} up"
+        if self.e2.ip_address is not None:
+            cmds += " && ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
-        return super().destroy() + "ip link delete {name_1_to_2}".format(**self.__dict__)
+        return super().destroy() + "ip netns exec {e1.entity.name} ip link delete {e1.name}".format(**self.__dict__)
 
 
 class Master:
