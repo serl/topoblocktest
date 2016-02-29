@@ -333,7 +333,7 @@ class Master:
     def cleanup(self):
         return self.__get_commands(self.links, 'destroy') + self.__get_commands(self.entities, 'destroy')
 
-    def get_script(self):
+    def get_script(self, include_calls=True):
         res = CommandBlock.root_check()
         res += 'function opg_setup {'
         res += 'set -e'
@@ -347,4 +347,8 @@ class Master:
         res += ''
         res += 'sleep 1'
         res += '}'
+        if include_calls:
+            res += ''
+            res += 'trap opg_cleanup EXIT'
+            res += 'opg_setup'
         return res

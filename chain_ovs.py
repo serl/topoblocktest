@@ -33,13 +33,9 @@ if settings['n_ovs'] > 0:
 else:
     Link.declare((ns1, '10.113.1.1'), (ns2, '10.113.1.2'))
 
-topo_definitions = m.get_script()
-
 script = CommandBlock()
 script += '#!/bin/bash'
-script += topo_definitions
-script += 'trap opg_cleanup EXIT'
-script += 'opg_setup'
+script += m.get_script()
 script += ''
 
 #topology check
