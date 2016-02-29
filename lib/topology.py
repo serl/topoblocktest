@@ -193,7 +193,7 @@ class Link_OVS_OVS_veth(Link):
         cmds += "ip link set {e1.name} up"
         #configure the other side
         cmds += "ovs-vsctl add-port {e2.entity.name} {e2.name}"
-        cmds += "ip link set {e2.name}"
+        cmds += "ip link set {e2.name} up"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
@@ -210,8 +210,8 @@ class Link_OVS_OVS_patch(Link):
     def create(self):
         self.assign_attributes()
         cmds = CommandBlock()
-        cmds = "ovs-vsctl add-port {e1.entity.name} {e1.name} -- set Interface {e1.name} type=patch options:peer={e2.name}"
-        cmds = "ovs-vsctl add-port {e2.entity.name} {e2.name} -- set Interface {e2.name} type=patch options:peer={e1.name}"
+        cmds += "ovs-vsctl add-port {e1.entity.name} {e1.name} -- set Interface {e1.name} type=patch options:peer={e2.name}"
+        cmds += "ovs-vsctl add-port {e2.entity.name} {e2.name} -- set Interface {e2.name} type=patch options:peer={e1.name}"
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         return None # destroyed by the bridge
@@ -320,9 +320,11 @@ class Master:
     @property
     def links(self):
         links = []
+        links_set = set()
+        links_set_add = links_set.add
         for e in self.entities:
-            links += e.links
-        return set(links)
+            links += [l for l in e.links if not (l in links_set or links_set_add(l))]
+        return links
 
     def __get_commands(self, collection, fn):
         commands = CommandBlock()
