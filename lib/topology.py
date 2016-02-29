@@ -138,6 +138,8 @@ class Link:
             else:
                 raise ConfigurationError('unrecognized type: {}'.format(link_type))
         if type(e1.entity) is Netns and type(e2.entity) is Netns:
+            if link_type is not None and link_type != 'veth':
+                raise ConfigurationError('unrecognized type: {}'.format(link_type))
             return Link_Netns_Netns_veth(e1, e2, *args, **kwargs)
 
     def __init__(self, e1, e2):
@@ -340,6 +342,7 @@ class Master:
         res += self.setup()
         res += ''
         res += 'set +e'
+        res += 'sleep 1'
         res += '}'
         res += ''
         res += 'function opg_cleanup {'
