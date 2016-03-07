@@ -18,15 +18,17 @@ def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1):
     script += '#!/bin/bash'
     script += m.get_script()
     script += ''
-    script += 'EXPORT_FILE="{id}-{parallelism}-{n_ovs}-{ovs_ovs_links}-{ovs_ns_links}"'.format(**settings)
+    script += 'umask 0000' #as the script will be run as root, this ensures that after you can play around as normal user ;)
+    script += 'TEST_DIR="results/chain_ovs_iperf" EXPORT_FILE="$TEST_DIR/{id}-{parallelism}-{n_ovs}-{ovs_ovs_links}-{ovs_ns_links}"'.format(**settings)
+    script += 'mkdir -p "$TEST_DIR"'
 
     #topology check
     topology = CommandBlock()
-    topology += 'ovs-vsctl show > results/${{EXPORT_FILE}}_topology'
-    topology += 'echo -e "\\nip a on x-ns1" >> results/${{EXPORT_FILE}}_topology'
-    topology += 'ip netns exec x-ns1 ip a >> results/${{EXPORT_FILE}}_topology'
-    topology += 'echo -e "\\nip a on x-ns2" >> results/${{EXPORT_FILE}}_topology'
-    topology += 'ip netns exec x-ns2 ip a >> results/${{EXPORT_FILE}}_topology'
+    topology += 'ovs-vsctl show > ${{EXPORT_FILE}}_topology'
+    topology += 'echo -e "\\nip a on x-ns1" >> ${{EXPORT_FILE}}_topology'
+    topology += 'ip netns exec x-ns1 ip a >> ${{EXPORT_FILE}}_topology'
+    topology += 'echo -e "\\nip a on x-ns2" >> ${{EXPORT_FILE}}_topology'
+    topology += 'ip netns exec x-ns2 ip a >> ${{EXPORT_FILE}}_topology'
     script += topology.format(**settings)
 
     #script to run
@@ -39,7 +41,7 @@ def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1):
         if [ "$csvline" ]; then
             measure=${{csvline##*,}}
             echo measured $(numfmt --to=iec --suffix=b/s $measure)
-            echo $measure >> results/$EXPORT_FILE
+            echo $measure >> $EXPORT_FILE
         else
             echo error
         fi
@@ -56,6 +58,7 @@ if __name__ == '__main__':
             'n_ovs': int(sys.argv[1]),
             'ovs_ovs_links': sys.argv[2],
             'ovs_ns_links': sys.argv[3],
+            'parallelism': int(sys.argv[4]),
         }
     except (IndexError, ValueError):
         pass
