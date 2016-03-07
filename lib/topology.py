@@ -30,7 +30,7 @@ class Entity:
         if self.name is None:
             raise ConfigurationError("name is missing")
     @property
-    def entity_name(self):
+    def entity_type_name(self):
         hierarchy = []
         ccls = self.__class__
         while ccls is not object:
@@ -314,7 +314,7 @@ class Master:
 
     def assign_attributes(self):
         for entity in self.entities:
-            self.find_unique_attribute(entity, 'name', '{entity.entity_name}{n}')
+            self.find_unique_attribute(entity, 'name', '{entity.entity_type_name}{n}')
             # self.find_unique_attribute(entity, 'ip_address', '10.112.{n}.1', 255)
 
     @property
