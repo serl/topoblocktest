@@ -1,4 +1,5 @@
 /.localpyenv
 __pycache__/
+*.pyc
 /results/*
 !/results/.gitkeep
