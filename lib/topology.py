@@ -108,11 +108,13 @@ class Endpoint:
             else:
                 self.ip_address = ip_address
                 self.ip_size = 24
+    def disable_offloading(self):
+        return 'ethtool -K {self.name} tx off gso off sg off gro off'.format(self=self)
 
 
 class Link:
     @staticmethod
-    def declare(e1, e2, link_type=None, *args, **kwargs):
+    def declare(e1, e2, link_type=None, **kwargs):
         e1 = Endpoint.get(e1)
         e2 = Endpoint.get(e2)
 
@@ -120,9 +122,9 @@ class Link:
             if link_type is None:
                 link_type = 'patch'
             if link_type == 'veth':
-                return Link_OVS_OVS_veth(e1, e2, *args, **kwargs)
+                return Link_OVS_OVS_veth(e1, e2, **kwargs)
             elif link_type == 'patch':
-                return Link_OVS_OVS_patch(e1, e2, *args, **kwargs)
+                return Link_OVS_OVS_patch(e1, e2, **kwargs)
             else:
                 raise ConfigurationError('unrecognized type: {}'.format(link_type))
         if (type(e1.entity) is OVS and type(e2.entity) is Netns) or (type(e1.entity) is Netns and type(e2.entity) is OVS):
@@ -132,19 +134,20 @@ class Link:
             if link_type is None:
                 link_type = 'port'
             if link_type == 'veth':
-                return Link_OVS_Netns_veth(e1, e2, *args, **kwargs)
+                return Link_OVS_Netns_veth(e1, e2, **kwargs)
             elif link_type == 'port':
-                return Link_OVS_Netns_port(e1, e2, *args, **kwargs)
+                return Link_OVS_Netns_port(e1, e2, **kwargs)
             else:
                 raise ConfigurationError('unrecognized type: {}'.format(link_type))
         if type(e1.entity) is Netns and type(e2.entity) is Netns:
             if link_type is not None and link_type != 'veth':
                 raise ConfigurationError('unrecognized type: {}'.format(link_type))
-            return Link_Netns_Netns_veth(e1, e2, *args, **kwargs)
+            return Link_Netns_Netns_veth(e1, e2, **kwargs)
 
-    def __init__(self, e1, e2):
+    def __init__(self, e1, e2, disable_offloading=False, **kwargs):
         self.e1 = e1
         self.e2 = e2
+        self.disable_offloading = disable_offloading
         e1.entity.links.append(self)
         e2.entity.links.append(self)
     @add_comment('creating')
@@ -176,7 +179,7 @@ class Link:
 
 class Link_OVS_OVS_veth(Link):
     def __init__(self, e1, e2, **kwargs):
-        super().__init__(e1, e2)
+        super().__init__(e1, e2, **kwargs)
     def assign_attributes(self):
         # veth names are limited to 15 chars(!)
         if self.e1.name is None:
@@ -191,9 +194,13 @@ class Link_OVS_OVS_veth(Link):
         #configure one side
         cmds += "ovs-vsctl add-port {e1.entity.name} {e1.name}"
         cmds += "ip link set {e1.name} up"
+        if self.disable_offloading:
+            cmds += self.e1.disable_offloading()
         #configure the other side
         cmds += "ovs-vsctl add-port {e2.entity.name} {e2.name}"
         cmds += "ip link set {e2.name} up"
+        if self.disable_offloading:
+            cmds += self.e2.disable_offloading()
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
@@ -201,7 +208,7 @@ class Link_OVS_OVS_veth(Link):
 
 class Link_OVS_OVS_patch(Link):
     def __init__(self, e1, e2, **kwargs):
-        super().__init__(e1, e2)
+        super().__init__(e1, e2, **kwargs)
     def assign_attributes(self):
         if self.e1.name is None:
             self.e1.name = 'patch-{e2.entity.name}-{e1.entity.name_id}'.format(**self.__dict__)
@@ -220,7 +227,7 @@ class Link_OVS_OVS_patch(Link):
 class Link_OVS_Netns_veth(Link):
     # e1 is the ovs, e2 is the netns
     def __init__(self, e1, e2, **kwargs):
-        super().__init__(e1, e2)
+        super().__init__(e1, e2, **kwargs)
     def assign_attributes(self):
         if self.e1.name is None:
             self.e1.name = 'v-{}'.format(self.e2.entity.name)
@@ -234,11 +241,15 @@ class Link_OVS_Netns_veth(Link):
         #configure ovs side
         cmds += "ovs-vsctl add-port {e1.entity.name} {e1.name}"
         cmds += "ip link set {e1.name} up"
+        if self.disable_offloading:
+            cmds += self.e1.disable_offloading()
         #configure namespace side
         cmds += "ip link set {e2.name} netns {e2.entity.name}"
         cmds += "ip netns exec {e2.entity.name} ip link set dev {e2.name} up"
         if self.e2.ip_address is not None:
             cmds += "ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
+        if self.disable_offloading:
+            cmds += ("ip netns exec {e2.entity.name} " + self.e2.disable_offloading())
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
@@ -247,7 +258,7 @@ class Link_OVS_Netns_veth(Link):
 class Link_OVS_Netns_port(Link):
     # e1 is the ovs, e2 is the netns
     def __init__(self, e1, e2, **kwargs):
-        super().__init__(e1, e2)
+        super().__init__(e1, e2, **kwargs)
     def assign_attributes(self):
         if self.e2.name is None:
             self.e2.name = 'p-{e1.entity.name}-{e2.entity.name_id}'.format(**self.__dict__)
@@ -259,13 +270,15 @@ class Link_OVS_Netns_port(Link):
         cmds += "ip netns exec {e2.entity.name} ip link set dev {e2.name} up"
         if self.e2.ip_address is not None:
             cmds += "ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
+        if self.disable_offloading:
+            cmds += ("ip netns exec {e2.entity.name} " + self.e2.disable_offloading())
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         return None # destroyed by the bridge
 
 class Link_Netns_Netns_veth(Link):
     def __init__(self, e1, e2, **kwargs):
-        super().__init__(e1, e2)
+        super().__init__(e1, e2, **kwargs)
     def assign_attributes(self):
         # veth names are limited to 15 chars(!)
         if self.e1.name is None:
@@ -282,11 +295,15 @@ class Link_Netns_Netns_veth(Link):
         cmds += "ip netns exec {e1.entity.name} ip link set dev {e1.name} up"
         if self.e1.ip_address is not None:
             cmds += "ip netns exec {e1.entity.name} ip address add {e1.ip_address}/{e1.ip_size} dev {e1.name}"
+        if self.disable_offloading:
+            cmds += ("ip netns exec {e1.entity.name} " + self.e1.disable_offloading())
         #configure the other side
         cmds += "ip link set {e2.name} netns {e2.entity.name}"
         cmds += "ip netns exec {e2.entity.name} ip link set dev {e2.name} up"
         if self.e2.ip_address is not None:
             cmds += "ip netns exec {e2.entity.name} ip address add {e2.ip_address}/{e2.ip_size} dev {e2.name}"
+        if self.disable_offloading:
+            cmds += ("ip netns exec {e2.entity.name} " + self.e2.disable_offloading())
         return super().create() + cmds.format(**self.__dict__)
     def destroy(self):
         self.assign_attributes()
