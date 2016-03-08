@@ -1,0 +1,4 @@
+[ -e ~/.bashrc ] && . ~/.bashrc
+cd /vagrant
+pyvenv .vagrantpyenv && source .vagrantpyenv/bin/activate && pip install -r requirements.txt
+PS1='$(__git_ps1)'" $PS1"
