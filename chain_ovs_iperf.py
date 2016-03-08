@@ -1,6 +1,7 @@
 import sys, itertools
 import lib.topologies as topologies
 from lib.bash import CommandBlock
+from datetime import datetime, timedelta
 
 def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1):
     settings = {
@@ -72,7 +73,12 @@ if __name__ == '__main__':
         test(**settings)
     else:
         #run the complete set!
+        repetitions = 10
+        cases = []
         for (n_ovs, ovs_ovs_links, ovs_ns_links, parallelism) in itertools.product((0, 1, 2, 3, 5, 10, 20, 30, 50), ('patch', 'veth'), ('port', 'veth'), (1, 2, 4, 8, 12)):
             if n_ovs is 0 and (ovs_ovs_links != 'veth' or ovs_ns_links != 'veth'):
                 continue
+            cases.append((n_ovs, ovs_ovs_links, ovs_ns_links, parallelism))
+        print('{} experiments to do. Expected end: {}\n'.format(len(cases), datetime.now() + timedelta(seconds=len(cases)*2 + len(cases)*repetitions*35)))
+        for (n_ovs, ovs_ovs_links, ovs_ns_links, parallelism) in cases:
             test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism, 10)
