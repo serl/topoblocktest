@@ -6,7 +6,7 @@ apt-get update
 apt-get -y install htop ntpdate
 
 # iperf and iostat
-apt-get -y install iperf sysstat
+apt-get -y install iperf sysstat tshark
 
 # python3 with pyvenv
 apt-get -y install python3-venv python3-dev
