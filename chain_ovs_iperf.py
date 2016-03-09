@@ -54,7 +54,7 @@ def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1, mss=N
     script += """
     ip netns exec x-ns1 iperf -s &>/dev/null & IPERF_PID=$!
     if [ "{tcpdump}" == True ]; then
-        ip netns exec x-ns2 tcpdump -s 96 -w $EXPORT_FILE.pcap &>/dev/null & TCPDUMP_PID=$!
+        ip netns exec x-ns1 tcpdump -s 96 -w $EXPORT_FILE.pcap &>/dev/null & TCPDUMP_PID=$!
     fi
     for i in `seq {repetitions}`; do
         echo -n "Running iperf (with {parallelism} clients) ($i)... "
