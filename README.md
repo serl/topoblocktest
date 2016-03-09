@@ -18,7 +18,7 @@ You need [VirtualBox](https://www.virtualbox.org/) and [Vagrant](https://www.vag
 ### System-wide
 You need:
 
-* iperf, iostat, tshark: `sudo apt-get install iperf sysstat tshark`
+* ethtool, iperf, iostat, tshark: `sudo apt-get install ethtool iperf sysstat tshark`
 * Python > 3.4.2 and pyvenv: `python3-venv python3-dev`
 * the dependencies for the dependencies (scipy): `gfortran libopenblas-dev liblapack-dev`
 * Open vSwitch ~2.3.0
