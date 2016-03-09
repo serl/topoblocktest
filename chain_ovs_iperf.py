@@ -105,4 +105,4 @@ if __name__ == '__main__':
 
         print('{} experiments to do. Expected end: {}\n'.format(len(cases), datetime.now() + timedelta(seconds=len(cases)*2 + len(cases)*repetitions*35)))
         for (n_ovs, ovs_ovs_links, ovs_ns_links, parallelism, mss, disable_offloading) in cases:
-            test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism, 10, mss, disable_offloading)
+            test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism, repetitions, mss, disable_offloading)
