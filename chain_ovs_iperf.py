@@ -16,8 +16,18 @@ def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1, mss=N
         'disable_offloading': disable_offloading,
         'tcpdump': tcpdump,
     }
-    if 'mss' in settings and settings['mss'] is not None:
+    if settings['mss'] is not None:
         settings['mss_param'] = '--mss {}'.format(settings['mss'])
+
+    settings['test_dir'] = 'results/chain_ovs_iperf/'
+    if settings['disable_offloading']:
+        settings['test_dir'] += 'disable_offloading/'
+    else:
+        settings['test_dir'] += 'enable_offloading/'
+    if settings['mss'] is None:
+        settings['test_dir'] += 'default/'
+    else:
+        settings['test_dir'] += '{}/'.format(settings['mss'])
 
     m = topologies.ovs_chain(settings['n_ovs'], settings['ovs_ovs_links'], settings['ovs_ns_links'], settings['disable_offloading'])
 
@@ -26,7 +36,7 @@ def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1, mss=N
     script += m.get_script()
     script += ''
     script += 'umask 0000' #as the script will be run as root, this ensures that after you can play around as normal user ;)
-    script += 'TEST_DIR="results/chain_ovs_iperf"'
+    script += 'TEST_DIR="{test_dir}"'.format(**settings)
     script += 'EXPORT_FILE="$TEST_DIR/{id}-{parallelism}-{n_ovs}-{ovs_ovs_links}-{ovs_ns_links}"'.format(**settings)
     script += 'CPU_FILE="${EXPORT_FILE}_cpu"'
     script += 'mkdir -p "$TEST_DIR"'
