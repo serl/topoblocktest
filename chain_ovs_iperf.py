@@ -3,7 +3,7 @@ import lib.topologies as topologies
 from lib.bash import CommandBlock
 from datetime import datetime, timedelta
 
-def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1):
+def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1, mss=None, disable_offloading=False, tcpdump=False):
     settings = {
         'id': 'chain',
         'n_ovs': int(n_ovs),
@@ -11,9 +11,15 @@ def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1):
         'ovs_ns_links': ovs_ns_links,
         'repetitions': repetitions,
         'parallelism': parallelism,
+        'mss': mss,
+        'mss_param': '',
+        'disable_offloading': disable_offloading,
+        'tcpdump': tcpdump,
     }
+    if 'mss' in settings and settings['mss'] is not None:
+        settings['mss_param'] = '--mss {}'.format(settings['mss'])
 
-    m = topologies.ovs_chain(settings['n_ovs'], settings['ovs_ovs_links'], settings['ovs_ns_links'])
+    m = topologies.ovs_chain(settings['n_ovs'], settings['ovs_ovs_links'], settings['ovs_ns_links'], settings['disable_offloading'])
 
     script = CommandBlock()
     script += '#!/bin/bash'
@@ -37,12 +43,14 @@ def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1):
     #script to run
     script += """
     ip netns exec x-ns1 iperf -s &>/dev/null & IPERF_PID=$!
-    trap "kill $IPERF_PID && sleep 1; opg_cleanup" EXIT
+    if [ "{tcpdump}" == True ]; then
+        ip netns exec x-ns2 tcpdump -s 96 -w $EXPORT_FILE.pcap &>/dev/null & TCPDUMP_PID=$!
+    fi
     for i in `seq {repetitions}`; do
         echo -n "Running iperf (with {parallelism} clients) ($i)... "
         sleep 1
         (LC_ALL=C iostat -c 5 6 | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' >> $CPU_FILE) & IOSTAT_PID=$! # CPU monitoring
-        csvline=$(ip netns exec x-ns2 timeout --signal=KILL 45 iperf --time 30 --client 10.113.1.1 --reportstyle C --parallel {parallelism} | tail -n1)
+        csvline=$(ip netns exec x-ns2 timeout --signal=KILL 45 iperf --time 30 {mss_param} --client 10.113.1.1 --reportstyle C --parallel {parallelism} | tail -n1)
         if [ "$csvline" ]; then
             measure=${{csvline##*,}}
             echo measured $(numfmt --to=iec --suffix=b/s $measure)
@@ -53,6 +61,9 @@ def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1):
         fi
         wait $IOSTAT_PID
     done
+    kill $IPERF_PID $TCPDUMP_PID
+    wait
+    sleep 1
     """.format(**settings)
 
     script.run()
@@ -75,10 +86,13 @@ if __name__ == '__main__':
         #run the complete set!
         repetitions = 10
         cases = []
-        for (n_ovs, ovs_ovs_links, ovs_ns_links, parallelism) in itertools.product((0, 1, 2, 3, 5, 10, 20, 30, 50), ('patch', 'veth'), ('port', 'veth'), (1, 2, 4, 8, 12)):
+        for (n_ovs, ovs_ovs_links, ovs_ns_links, parallelism, mss, disable_offloading) in itertools.product((0, 1, 2, 3, 5, 10, 20, 30, 50), ('patch', 'veth'), ('port', 'veth'), (1, 2, 4, 8, 12), (None, 536), (True, False)):
             if n_ovs is 0 and (ovs_ovs_links != 'veth' or ovs_ns_links != 'veth'):
                 continue
-            cases.append((n_ovs, ovs_ovs_links, ovs_ns_links, parallelism))
+            if (mss is not None or disable_offloading) and parallelism != 4:
+                continue
+            cases.append((n_ovs, ovs_ovs_links, ovs_ns_links, parallelism, mss, disable_offloading))
+
         print('{} experiments to do. Expected end: {}\n'.format(len(cases), datetime.now() + timedelta(seconds=len(cases)*2 + len(cases)*repetitions*35)))
-        for (n_ovs, ovs_ovs_links, ovs_ns_links, parallelism) in cases:
-            test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism, 10)
+        for (n_ovs, ovs_ovs_links, ovs_ns_links, parallelism, mss, disable_offloading) in cases:
+            test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism, 10, mss, disable_offloading)
