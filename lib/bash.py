@@ -6,7 +6,8 @@ class CommandBlock:
         return cls() + 'if [ $EUID -ne 0 ]; then echo "root account required!"; exit 1; fi'
     def __init__(self):
         self.__commands = []
-    def format(self, *args, **kwargs):
+    def format(*args, **kwargs):
+        self = args[0] #must do this ugly trick in order to let you define self as a key in kwargs
         res = CommandBlock()
         for c in self.__commands:
             res += c.format(*args, **kwargs)

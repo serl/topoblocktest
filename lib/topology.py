@@ -23,6 +23,9 @@ class Entity:
     def create(self):
         self.check_configuration()
         return CommandBlock()
+    @add_comment('configuring')
+    def configure(self):
+        return CommandBlock()
     @add_comment('destroying')
     def destroy(self):
         return CommandBlock()
@@ -54,14 +57,27 @@ class Entity:
     def description(self):
         return self.name
 
+    def __str__(self):
+        return self.description
+    def __repr__(self):
+        return self.__str__()
+
 
 class Netns(Entity):
     __shortname = 'ns'
     def __init__(self, name=None):
         super().__init__()
         self.name = name
+        self.routes = []
+    def add_route(self, destination, endpoint):
+        self.routes.append((destination, endpoint))
     def create(self):
         return super().create() + "ip netns add {self.name}".format(self=self)
+    def configure(self):
+        cmds = CommandBlock()
+        for r in self.routes:
+            cmds += "ip netns exec {self.name} ip route add "+r[0]+" via "+r[1].ip_address+" proto static"
+        return super().create() + cmds.format(self=self)
     def destroy(self):
         return super().destroy() + "ip netns delete {self.name}".format(self=self)
 
@@ -102,6 +118,10 @@ class Endpoint:
             else:
                 self.ip_address = ip_address
                 self.ip_size = 24
+    def __str__(self):
+        return '{self.name} ({self.ip_address}/{self.ip_size})'.format(self=self)
+    def __repr__(self):
+        return self.__str__()
     def disable_offloading(self):
         return 'ethtool -K {self.name} tx off gso off sg off gro off'.format(self=self)
 
@@ -344,7 +364,7 @@ class Master:
         return commands
     def setup(self):
         self.assign_attributes()
-        return self.__get_commands(self.entities, 'create') + self.__get_commands(self.links, 'create')
+        return self.__get_commands(self.entities, 'create') + self.__get_commands(self.links, 'create') + self.__get_commands(self.entities, 'configure')
     def cleanup(self):
         return self.__get_commands(self.links, 'destroy') + self.__get_commands(self.entities, 'destroy')
 
