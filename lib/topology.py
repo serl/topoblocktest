@@ -55,10 +55,7 @@ class Entity:
         return self.name
 
 
-class Container(Entity):
-    pass
-
-class Netns(Container):
+class Netns(Entity):
     __shortname = 'ns'
     def __init__(self, name=None):
         super().__init__()
@@ -68,14 +65,11 @@ class Netns(Container):
     def destroy(self):
         return super().destroy() + "ip netns delete {self.name}".format(self=self)
 
-class DockerContainer(Container):
+class DockerContainer(Entity):
     pass
 
 
-class Bridge(Entity):
-    pass
-
-class OVS(Bridge):
+class OVS(Entity):
     __shortname = 'ovs'
     def __init__(self, name=None):
         super().__init__()
