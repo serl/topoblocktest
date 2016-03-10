@@ -9,10 +9,12 @@ apt-get -y install htop ntpdate
 apt-get -y install iperf sysstat tshark
 
 # python3 with pyvenv
-apt-get -y install python3-venv python3-dev
+apt-get -y install python3.4 python3.4-venv python3.4-dev
 
 # deps of python deps
 apt-get -y install gfortran libopenblas-dev liblapack-dev
+apt-get -y install libpng-dev libfreetype6-dev pkg-config
+apt-get -y install cmake qt4-dev-tools qt4-qmake
 
 # OVS
 apt-get -y install openvswitch-switch

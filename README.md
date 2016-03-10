@@ -19,9 +19,12 @@ You need [VirtualBox](https://www.virtualbox.org/) and [Vagrant](https://www.vag
 You need:
 
 * ethtool, iperf, iostat, tshark: `sudo apt-get install ethtool iperf sysstat tshark`
-* Python > 3.4.2 and pyvenv: `python3-venv python3-dev`
-* the dependencies for the dependencies (scipy): `gfortran libopenblas-dev liblapack-dev`
+* Python 3.4.x and pyvenv: `python3.4 python3.4-venv python3.4-dev`
+* the dependencies for the dependencies
+  * scipy: `gfortran libopenblas-dev liblapack-dev`
+  * matplotlib: `libpng-dev libfreetype6-dev pkg-config`
+  * pyside: `cmake qt4-dev-tools qt4-qmake`
 * Open vSwitch ~2.3.0
 * Docker ~1.10.2
 
-Configure the environment with `source .env`; it will also install/compile the Python dependencies. Exit the pyenv (and restart using you're good ole Python version) by running `deactivate`.
+Configure the environment with `source .env`; it will also install/compile the Python dependencies. Exit the pyvenv (and restart using you're good ole Python version) by running `deactivate`.
