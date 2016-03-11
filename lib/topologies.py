@@ -59,13 +59,13 @@ def ns_chain(n_ns=2, use_ovs=False, ovs_ns_links='port', disable_offloading=Fals
              elif (l.e2.entity == ns):
                  left = l.e1
 
-        for subnet in range(0, n_ns):
-            if subnet in range(i-1, i+2):
+        for subnet_number in range(n_ns-1):
+            if subnet_number in range(i-1, i+1):
                 continue #directly linked
-            elif subnet < i:
+            elif subnet_number < i:
                 endpoint = left
-            elif subnet > i:
+            elif subnet_number > i:
                 endpoint = right
-            ns.add_route('{}.{}.0/24'.format(base_net, subnet), endpoint)
+            ns.add_route('{}.{}.0/24'.format(base_net, subnet_number), endpoint)
 
     return m

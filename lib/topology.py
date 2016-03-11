@@ -77,7 +77,7 @@ class Netns(Entity):
         cmds = CommandBlock()
         for r in self.routes:
             cmds += "ip netns exec {self.name} ip route add "+r[0]+" via "+r[1].ip_address+" proto static"
-        return super().create() + cmds.format(self=self)
+        return super().configure() + cmds.format(self=self)
     def destroy(self):
         return super().destroy() + "ip netns delete {self.name}".format(self=self)
 
@@ -368,10 +368,12 @@ class Master:
     def cleanup(self):
         return self.__get_commands(self.links, 'destroy') + self.__get_commands(self.entities, 'destroy')
 
-    def get_script(self, include_calls=True):
+    def get_script(self, enable_routing=True, include_calls=True):
         res = CommandBlock.root_check()
         res += 'function opg_setup {'
         res += 'set -e'
+        if enable_routing:
+            res += 'sysctl -w net.ipv4.ip_forward=1'
         res += self.setup()
         res += ''
         res += 'set +e'
@@ -381,6 +383,8 @@ class Master:
         res += 'function opg_cleanup {'
         res += self.cleanup()
         res += ''
+        if enable_routing:
+            res += 'sysctl -w net.ipv4.ip_forward=0'
         res += 'sleep 1'
         res += '}'
         if include_calls:
