@@ -21,7 +21,7 @@ def ovs_chain(n_ovs, ovs_ovs_links, ovs_ns_links, disable_offloading=False):
     else:
         Link.declare((ns1, '10.113.1.1'), (ns2, '10.113.1.2'), disable_offloading=disable_offloading)
 
-    return m
+    return (m, ns1, ns2)
 
 def ns_chain(n_ns=2, use_ovs=False, ovs_ns_links='port', disable_offloading=False):
     base_net = '10.114'
@@ -67,4 +67,4 @@ def ns_chain(n_ns=2, use_ovs=False, ovs_ns_links='port', disable_offloading=Fals
                 endpoint = ns.right
             ns.add_route('{}.{}.0/24'.format(base_net, subnet_number), endpoint)
 
-    return m
+    return (m, nss[0], nss[-1])

@@ -27,7 +27,9 @@ def test(n_ns, use_ovs, ovs_ns_links, parallelism=1, repetitions=1, mss='default
     else:
         settings['result_file'] += 'chain-{parallelism}-{n_ns}-direct-veth'.format(**settings)
 
-    m = topologies.ns_chain(settings['n_ns'], settings['use_ovs'], settings['ovs_ns_links'], settings['disable_offloading'])
+    m, ns1, ns2 = topologies.ns_chain(settings['n_ns'], settings['use_ovs'], settings['ovs_ns_links'], settings['disable_offloading'])
+    settings['ns1'] = ns1
+    settings['ns2'] = ns2
 
     script = tests.begin()
     script += m.get_script()

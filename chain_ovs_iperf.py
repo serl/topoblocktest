@@ -13,8 +13,6 @@ def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1, mss='
         'mss': mss,
         'disable_offloading': disable_offloading,
         'tcpdump': tcpdump,
-        'ns1': 'x-ns1',
-        'ns2': 'x-ns2',
     }
 
     settings['result_file'] = 'results/chain_ovs_iperf/'
@@ -25,7 +23,9 @@ def test(n_ovs, ovs_ovs_links, ovs_ns_links, parallelism=1, repetitions=1, mss='
     settings['result_file'] += '{}/'.format(settings['mss'])
     settings['result_file'] += 'chain-{parallelism}-{n_ovs}-{ovs_ovs_links}-{ovs_ns_links}'.format(**settings)
 
-    m = topologies.ovs_chain(settings['n_ovs'], settings['ovs_ovs_links'], settings['ovs_ns_links'], settings['disable_offloading'])
+    m, ns1, ns2 = topologies.ovs_chain(settings['n_ovs'], settings['ovs_ovs_links'], settings['ovs_ns_links'], settings['disable_offloading'])
+    settings['ns1'] = ns1
+    settings['ns2'] = ns2
 
     script = tests.begin()
     script += m.get_script()
