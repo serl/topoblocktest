@@ -383,6 +383,7 @@ class Master:
         res += '}'
         res += ''
         res += 'function opg_cleanup {'
+        res += 'set +e'
         res += self.cleanup()
         res += ''
         if enable_routing:
