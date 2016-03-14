@@ -18,7 +18,7 @@ def get_possibilities(collection, key):
         return []
     return sorted(list(set([getattr(o, key) for l in collection for o in l])))
 
-re_filename = re.compile(r'^chain-(\d+)-(\d+)-([^-_]+)-([^-_]+)$')
+re_filename = re.compile(r'^chain-(\d+)-(\d+)-([^-_]+)-([^-_\.]+)\.throughput$')
 results = {} # n_ovs => [ChainResult]
 results_path = 'results/chain_ovs_iperf/'
 p = Path(results_path)
@@ -36,7 +36,7 @@ for f in p.glob('*/*/*'):
     with f.open() as file_handler:
         values = [int(line.rstrip()) for line in file_handler]
         r.throughput = mean_confidence(values)
-    with open(str(f)+'_cpu', 'r') as file_handler:
+    with f.parent.joinpath(f.stem + '.cpu').open() as file_handler:
         sums = [0.0]*6
         length = 0
         skip_line = False
