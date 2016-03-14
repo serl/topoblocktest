@@ -5,6 +5,7 @@ from collections import OrderedDict
 import matplotlib
 matplotlib.use('qt4agg')
 import matplotlib.pyplot as plt
+from lib.plot import TogglableLegend
 
 class ChainResult:
     def __repr__(self):
@@ -114,13 +115,13 @@ for (offloading, mss, parallelism, ovs_ovs_links, ovs_ns_links) in itertools.pro
             styles[row_id][label]['linestyle'] = '--'
 
 fig, axes = plt.subplots(rows_number, 2, sharex=True)
-lines_legend = {}
+togglable_legend = TogglableLegend(fig)
 for row_id, (ax_throughput, ax_cpu) in enumerate(axes):
     lines = []
     for label, row in rows[row_id].items():
         x_values = []
         throughput_values = []
-        throughput_error=[]
+        throughput_error = []
         cpu_values = []
         for i, col in enumerate(columns):
             try:
@@ -131,9 +132,7 @@ for row_id, (ax_throughput, ax_cpu) in enumerate(axes):
                 x_values.append(col)
             except:
                 pass
-        kwargs = {}
-        if label in styles[row_id]:
-            kwargs = styles[row_id][label]
+        kwargs = styles[row_id][label] if label in styles[row_id] else {}
         series_lines = []
         line, two, three = ax_throughput.errorbar(x_values, throughput_values, yerr=throughput_error, label=label, **kwargs)
         series_lines.extend((line,) + two + three)
@@ -148,26 +147,7 @@ for row_id, (ax_throughput, ax_cpu) in enumerate(axes):
 
     legend = ax_cpu.legend(bbox_to_anchor=(1, 1), loc=2, fontsize='x-small')
     for legline, origlines in zip(legend.get_lines(), lines):
-        legline.set_picker(5)  # 5 pts tolerance
-        lines_legend[legline] = origlines
-
-def onpick(event):
-    # on the pick event, find the orig line corresponding to the
-    # legend proxy line, and toggle the visibility
-    legline = event.artist
-    origlines = lines_legend[legline]
-    vis = not origlines[0].get_visible()
-    for origline in origlines:
-        origline.set_visible(vis)
-    # Change the alpha on the line in the legend so we can see what lines
-    # have been toggled
-    if vis:
-        legline.set_alpha(1.0)
-    else:
-        legline.set_alpha(0.2)
-    fig.canvas.draw()
-
-fig.canvas.mpl_connect('pick_event', onpick)
+        togglable_legend.add(legline, origlines)
 
 plt.subplots_adjust(left=0.05, right=0.82, top=0.95, bottom=0.1)
 plt.show()
