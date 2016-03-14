@@ -34,38 +34,37 @@ def ns_chain(n_ns=2, use_ovs=False, ovs_ns_links='port', disable_offloading=Fals
 
     nss = []
     for i_ns in range(n_ns):
-        nss.append(Netns().add_to(m))
+        ns = Netns().add_to(m)
+        ns.left = None
+        ns.right = None
+        nss.append(ns)
 
     #and link them
     subnet_number = 0
     for ns1, ns2 in zip(nss, nss[1:]):
         ip_address_base = '{}.{}.'.format(base_net, subnet_number)
         if not use_ovs:
-            Link.declare((ns1, ip_address_base+'1'), (ns2, ip_address_base+'2'), disable_offloading=disable_offloading)
+            l = Link.declare((ns1, ip_address_base+'1'), (ns2, ip_address_base+'2'), disable_offloading=disable_offloading)
+            ns1.right = l.e2
+            ns2.left = l.e1
         else:
             ovs = OVS().add_to(m)
-            Link.declare((ns1, ip_address_base+'1'), ovs, link_type=ovs_ns_links, disable_offloading=disable_offloading)
-            Link.declare((ns2, ip_address_base+'2'), ovs, link_type=ovs_ns_links, disable_offloading=disable_offloading)
+            l1 = Link.declare((ns1, ip_address_base+'1'), ovs, link_type=ovs_ns_links, disable_offloading=disable_offloading)
+            ns2.left = l1.e2
+            l2 = Link.declare((ns2, ip_address_base+'2'), ovs, link_type=ovs_ns_links, disable_offloading=disable_offloading)
+            ns1.right = l2.e2
 
         subnet_number += 1
 
     #do the routing for intermediate namespaces
     for i, ns in enumerate(nss):
-        left = None
-        right = None
-        for l in ns.links:
-             if (l.e1.entity == ns):
-                 right = l.e2
-             elif (l.e2.entity == ns):
-                 left = l.e1
-
         for subnet_number in range(n_ns-1):
             if subnet_number in range(i-1, i+1):
                 continue #directly linked
             elif subnet_number < i:
-                endpoint = left
+                endpoint = ns.left
             elif subnet_number > i:
-                endpoint = right
+                endpoint = ns.right
             ns.add_route('{}.{}.0/24'.format(base_net, subnet_number), endpoint)
 
     return m

@@ -92,6 +92,8 @@ class OVS(Entity):
         self.name = name
     def create(self):
         return super().create() + "ovs-vsctl add-br {self.name}".format(self=self)
+    def configure(self):
+        return None
     def destroy(self):
         return super().destroy() + "ovs-vsctl del-br {self.name}".format(self=self)
 
@@ -244,9 +246,9 @@ class Link_OVS_Netns_veth(Link):
         super().__init__(e1, e2, **kwargs)
     def assign_attributes(self):
         if self.e1.name is None:
-            self.e1.name = 'v-{}'.format(self.e2.entity.name)
+            self.e1.name = 'v-ovs{e1.entity.name_id}-ns{e2.entity.name_id}'.format(**self.__dict__)
         if self.e2.name is None:
-            self.e2.name = 'v-{}'.format(self.e1.entity.name)
+            self.e2.name = 'v-ns{e2.entity.name_id}-ovs{e1.entity.name_id}'.format(**self.__dict__)
     def create(self):
         self.assign_attributes()
         cmds = CommandBlock()
