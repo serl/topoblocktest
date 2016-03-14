@@ -144,6 +144,7 @@ for row_id, (ax_throughput, ax_cpu) in enumerate(axes):
     ax_cpu.set_xlabel('number of bridges')
     ax_cpu.set_ylabel('cpu utilization (%)')
     ax_cpu.grid(True)
+    ax_cpu.axis([None, None, 10, 105])
 
     legend = ax_cpu.legend(bbox_to_anchor=(1, 1), loc=2, fontsize='x-small')
     for legline, origlines in zip(legend.get_lines(), lines):
