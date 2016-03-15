@@ -1,3 +1,11 @@
+#imports are inside functions!!!1
+
+def import_matplotlib(interactive=True):
+    if interactive:
+        import matplotlib
+        matplotlib.use('qt4agg')
+    import matplotlib.pyplot as plt
+    return plt
 
 class TogglableLegend:
     def __init__(self, fig):
@@ -26,13 +34,6 @@ class TogglableLegend:
         else:
             legline.set_alpha(0.4)
         self.fig.canvas.draw()
-
-def import_matplotlib(interactive=True):
-    if interactive:
-        import matplotlib
-        matplotlib.use('qt4agg')
-    import matplotlib.pyplot as plt
-    return plt
 
 def iperf(results_path, colors={}):
     #import
