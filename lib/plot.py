@@ -24,5 +24,5 @@ class TogglableLegend:
         if vis:
             legline.set_alpha(1.0)
         else:
-            legline.set_alpha(0.2)
+            legline.set_alpha(0.4)
         self.fig.canvas.draw()

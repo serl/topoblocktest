@@ -37,8 +37,7 @@ for f in p.glob('*/*/*'):
         values = [int(line.rstrip()) for line in file_handler]
         r.throughput = mean_confidence(values)
     with f.parent.joinpath(f.stem + '.cpu').open() as file_handler:
-        sums = [0.0]*6
-        length = 0
+        values_list = [[], [], [], [], [], []]
         skip_line = False
         for line in file_handler:
             if skip_line or line.startswith('avg-cpu:'):
@@ -46,10 +45,9 @@ for f in p.glob('*/*/*'):
                 continue
             row = map(float, line.split())
             for i, v in enumerate(row):
-                sums[i] += v
-            length += 1
+                values_list[i].append(v)
         # %user %nice %system %iowait %steal %idle
-        r.cpu = tuple([v/length for v in sums]) #TODO: add confidence intervals!
+        r.cpu = tuple([mean_confidence(values) for values in values_list])
     if r.n_ovs not in results:
         results[r.n_ovs] = []
     results[r.n_ovs].append(r)
@@ -123,20 +121,23 @@ for row_id, (ax_throughput, ax_cpu) in enumerate(axes):
         throughput_values = []
         throughput_error = []
         cpu_values = []
+        cpu_error = []
         for i, col in enumerate(columns):
             try:
                 r = row[i]
                 throughput_values.append(r.throughput[0])
                 throughput_error.append(r.throughput[1])
-                cpu_values.append(100-r.cpu[5]) # 100-idle
+                cpu_values.append(100-r.cpu[5][0]) # 100-idle
+                cpu_error.append(r.cpu[5][1])
                 x_values.append(col)
-            except:
+            except AttributeError:
                 pass
         kwargs = styles[row_id][label] if label in styles[row_id] else {}
         series_lines = []
         line, two, three = ax_throughput.errorbar(x_values, throughput_values, yerr=throughput_error, label=label, **kwargs)
         series_lines.extend((line,) + two + three)
-        series_lines += ax_cpu.plot(x_values, cpu_values, label=label, **kwargs)
+        line, two, three = ax_cpu.errorbar(x_values, cpu_values, yerr=cpu_error, label=label, **kwargs)
+        series_lines.extend((line,) + two + three)
         lines.append(series_lines)
     ax_throughput.set_xlabel('number of bridges')
     ax_throughput.set_ylabel('throughput (b/s)')
@@ -147,7 +148,7 @@ for row_id, (ax_throughput, ax_cpu) in enumerate(axes):
     ax_cpu.axis([None, None, 10, 105])
 
     legend = ax_cpu.legend(bbox_to_anchor=(1, 1), loc=2, fontsize='x-small')
-    for legline, origlines in zip(legend.get_lines(), lines):
+    for legline, origlines in zip(legend.get_texts(), lines):
         togglable_legend.add(legline, origlines)
 
 plt.subplots_adjust(left=0.05, right=0.82, top=0.95, bottom=0.1)
