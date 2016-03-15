@@ -70,18 +70,23 @@ def iperf(results_path, colors={}):
         with f.open() as file_handler:
             values = [int(line.rstrip()) for line in file_handler]
             r.throughput = mean_confidence(values)
+            r.len_values = len(values)
         with f.parent.joinpath(f.stem + '.cpu').open() as file_handler:
             values_list = [[], [], [], [], [], []]
+            len_values_check = 0
             skip_line = False
             for line in file_handler:
                 if skip_line or line.startswith('avg-cpu:'):
                     skip_line = not skip_line # if there's avg-cpu, we skip two lines
+                    len_values_check += 0.5 # as we do it twice
                     continue
                 row = map(float, line.split())
                 for i, v in enumerate(row):
                     values_list[i].append(v)
             # %user %nice %system %iowait %steal %idle
             r.cpu = tuple([mean_confidence(values) for values in values_list])
+            if float(r.len_values) != len_values_check:
+                raise ValueError('number of values not consistent between throughput and cpu usage')
         if r.n_ovs not in results:
             results[r.n_ovs] = []
         results[r.n_ovs].append(r)
