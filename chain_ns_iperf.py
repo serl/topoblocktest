@@ -58,7 +58,7 @@ if __name__ == '__main__':
         for (n_ns, use_ovs, ovs_ns_links, parallelism, mss, disable_offloading) in itertools.product((2, 3, 5, 10, 20), (False, True), ('port', 'veth'), (1, 2, 3, 4, 8, 12), ('default', 536), (True, False)):
             if use_ovs is True and ovs_ns_links == 'port':
                 continue
-            if (mss is not None or disable_offloading) and parallelism != 4:
+            if (mss != 'default' or disable_offloading) and parallelism != 4:
                 continue
             cases.append((n_ns, use_ovs, ovs_ns_links, parallelism, mss, disable_offloading))
 
