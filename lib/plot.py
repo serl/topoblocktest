@@ -111,7 +111,9 @@ def iperf(results_path, colors={}):
                 row.append(None)
         if tuple(set(row)) == (None,):
             continue
-        basestyle = { 'color': colors[links_description] if links_description in colors else 'black', 'linestyle': '-', 'markersize': 7 }
+        basestyle = { 'linestyle': '-', 'markersize': 7 }
+        if links_description in colors:
+            basestyle['color'] = colors[links_description]
         if offloading and mss == 'default':
             if parallelism <= 4:
                 row_id = 0
@@ -121,6 +123,8 @@ def iperf(results_path, colors={}):
                     styles[row_id][label]['marker'] = 'o'
                 elif parallelism is 2:
                     styles[row_id][label]['marker'] = '^'
+                elif parallelism is 3:
+                    styles[row_id][label]['marker'] = 'v'
                 elif parallelism is 4:
                     styles[row_id][label]['marker'] = 's'
             if parallelism >= 4:
@@ -130,9 +134,11 @@ def iperf(results_path, colors={}):
                 if parallelism is 4:
                     styles[row_id][label]['marker'] = 's'
                 elif parallelism is 8:
-                    styles[row_id][label]['marker'] = '^'
-                elif parallelism is 12:
                     styles[row_id][label]['marker'] = 'o'
+                elif parallelism is 12:
+                    styles[row_id][label]['marker'] = '^'
+                elif parallelism is 16:
+                    styles[row_id][label]['marker'] = 'v'
         if parallelism == 4:
             row_id = 2
             rows[row_id][label] = row
