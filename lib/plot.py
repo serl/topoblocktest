@@ -55,7 +55,7 @@ def iperf(results_path, colors={}):
     re_filename = re.compile(r'^chain-(\d+)-(\d+)-([^\.]+)\.throughput$')
 
     #logic
-    results = {} # n_ovs => [ChainResult]
+    results = {} # chain_len => [ChainResult]
     p = pathlib.Path(results_path)
     for f in p.glob('*/*/*'):
         match = re_filename.search(f.name)
@@ -63,7 +63,7 @@ def iperf(results_path, colors={}):
             continue
         r = ChainResult()
         r.parallelism = int(match.group(1))
-        r.n_ovs = int(match.group(2))
+        r.chain_len = int(match.group(2))
         r.links_description = match.group(3)
         r.offloading = (f.parts[-3] == 'enable_offloading')
         r.mss = f.parts[-2]
@@ -87,9 +87,9 @@ def iperf(results_path, colors={}):
             r.cpu = tuple([mean_confidence(values) for values in values_list])
             if float(r.len_values) != len_values_check:
                 raise ValueError('number of values not consistent between throughput and cpu usage')
-        if r.n_ovs not in results:
-            results[r.n_ovs] = []
-        results[r.n_ovs].append(r)
+        if r.chain_len not in results:
+            results[r.chain_len] = []
+        results[r.chain_len].append(r)
 
     columns = sorted(results.keys())
     rows_number = 3
@@ -101,9 +101,9 @@ def iperf(results_path, colors={}):
     for (offloading, mss, parallelism, links_description) in itertools.product(reversed(get_possibilities(results, 'offloading')), get_possibilities(results, 'mss'), get_possibilities(results, 'parallelism'), get_possibilities(results, 'links_description')):
         label = '{} {} ({}offloading, mss: {})'.format(links_description, parallelism, '' if offloading else 'no ', mss)
         row = []
-        for n_ovs in columns:
+        for chain_len in columns:
             try:
-                subset = [r for r in results[n_ovs] if r.offloading == offloading and r.mss == mss and r.parallelism == parallelism and r.links_description == links_description]
+                subset = [r for r in results[chain_len] if r.offloading == offloading and r.mss == mss and r.parallelism == parallelism and r.links_description == links_description]
                 if len(subset) > 1:
                     raise ValueError("Too many values for the constraint.")
                 row.append(subset[0])
