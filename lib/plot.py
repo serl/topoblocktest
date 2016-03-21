@@ -1,3 +1,4 @@
+from . import analyze
 #imports are inside functions!!!1
 
 def import_matplotlib(interactive=True):
@@ -35,126 +36,66 @@ class TogglableLegend:
             legline.set_alpha(0.4)
         self.fig.canvas.draw()
 
-def iperf(results_path, colors={}):
+def iperf(results_path=None, columns=None, rows=None, x_title='', colors={}):
     #import
-    import re, pathlib, itertools
-    from .math_utils import mean_confidence
     from collections import OrderedDict
     plt = import_matplotlib()
 
-    #definitions
-    class ChainResult:
-        def __repr__(self):
-            return repr(self.__dict__)
-    def get_possibilities(collection, key):
-        if isinstance(collection, dict):
-            collection = collection.values()
-        if len(collection) is 0:
-            return []
-        return sorted(list(set([getattr(o, key) for l in collection for o in l])))
-    re_filename = re.compile(r'^chain-(\d+)-(\d+)-([^\.]+)\.throughput$')
+    if columns is None and rows is None:
+        columns, rows = analyze.iperf(results_path)
 
-    #logic
-    results = {} # chain_len => [ChainResult]
-    p = pathlib.Path(results_path)
-    for f in p.glob('*/*/*'):
-        match = re_filename.search(f.name)
-        if match is None:
-            continue
-        r = ChainResult()
-        r.parallelism = int(match.group(1))
-        r.chain_len = int(match.group(2))
-        r.links_description = match.group(3)
-        r.offloading = (f.parts[-3] == 'enable_offloading')
-        r.mss = f.parts[-2]
-        with f.open() as file_handler:
-            values = [int(line.rstrip()) for line in file_handler]
-            r.throughput = mean_confidence(values)
-            r.len_values = len(values)
-        with f.parent.joinpath(f.stem + '.cpu').open() as file_handler:
-            values_list = [[], [], [], [], [], []]
-            len_values_check = 0
-            skip_line = False
-            for line in file_handler:
-                if skip_line or line.startswith('avg-cpu:'):
-                    skip_line = not skip_line # if there's avg-cpu, we skip two lines
-                    len_values_check += 0.5 # as we do it twice
-                    continue
-                row = map(float, line.split())
-                for i, v in enumerate(row):
-                    values_list[i].append(v)
-            # %user %nice %system %iowait %steal %idle
-            r.cpu = tuple([mean_confidence(values) for values in values_list])
-            if float(r.len_values) != len_values_check:
-                raise ValueError('number of values not consistent between throughput and cpu usage')
-        if r.chain_len not in results:
-            results[r.chain_len] = []
-        results[r.chain_len].append(r)
-
-    columns = sorted(results.keys())
     rows_number = 3
-    rows = []
+    rows_grouped = []
     styles = []
     for i in range(rows_number):
-        rows.append(OrderedDict()) # label of the serie => [ChainResult]
+        rows_grouped.append(OrderedDict()) # label of the serie => [ChainResult]
         styles.append({}) # label of the serie => **kwargs for matplotlib
-    for (offloading, mss, parallelism, links_description) in itertools.product(reversed(get_possibilities(results, 'offloading')), get_possibilities(results, 'mss'), get_possibilities(results, 'parallelism'), get_possibilities(results, 'links_description')):
-        label = '{} {} ({}offloading, mss: {})'.format(links_description, parallelism, '' if offloading else 'no ', mss)
-        row = []
-        for chain_len in columns:
-            try:
-                subset = [r for r in results[chain_len] if r.offloading == offloading and r.mss == mss and r.parallelism == parallelism and r.links_description == links_description]
-                if len(subset) > 1:
-                    raise ValueError("Too many values for the constraint.")
-                row.append(subset[0])
-            except:
-                row.append(None)
-        if tuple(set(row)) == (None,):
-            continue
+    for label, row in rows.items():
+        first_value = [c for c in row if c is not None][0]
         basestyle = { 'linestyle': '-', 'markersize': 7 }
-        if links_description in colors:
-            basestyle['color'] = colors[links_description]
-        if offloading and mss == 'default':
-            if parallelism <= 4:
+        if first_value.links_description in colors:
+            basestyle['color'] = colors[first_value.links_description]
+        if first_value.offloading and first_value.mss == 'default':
+            if first_value.parallelism <= 4:
                 row_id = 0
-                rows[row_id][label] = row
+                rows_grouped[row_id][label] = row
                 styles[row_id][label] = basestyle.copy()
-                if parallelism is 1:
+                if first_value.parallelism is 1:
                     styles[row_id][label]['marker'] = 'o'
-                elif parallelism is 2:
+                elif first_value.parallelism is 2:
                     styles[row_id][label]['marker'] = '^'
-                elif parallelism is 3:
+                elif first_value.parallelism is 3:
                     styles[row_id][label]['marker'] = 'v'
-                elif parallelism is 4:
+                elif first_value.parallelism is 4:
                     styles[row_id][label]['marker'] = 's'
-            if parallelism >= 4:
+            if first_value.parallelism >= 4:
                 row_id = 1
-                rows[row_id][label] = row
+                rows_grouped[row_id][label] = row
                 styles[row_id][label] = basestyle.copy()
-                if parallelism is 4:
+                if first_value.parallelism is 4:
                     styles[row_id][label]['marker'] = 's'
-                elif parallelism is 8:
+                elif first_value.parallelism is 8:
                     styles[row_id][label]['marker'] = 'o'
-                elif parallelism is 12:
+                elif first_value.parallelism is 12:
                     styles[row_id][label]['marker'] = '^'
-                elif parallelism is 16:
+                elif first_value.parallelism is 16:
                     styles[row_id][label]['marker'] = 'v'
-        if parallelism == 4:
+        if first_value.parallelism == 4:
             row_id = 2
-            rows[row_id][label] = row
+            rows_grouped[row_id][label] = row
             styles[row_id][label] = basestyle.copy()
-            if mss == 'default':
+            if first_value.mss == 'default':
                 styles[row_id][label]['marker'] = '^'
             else:
                 styles[row_id][label]['marker'] = 'o'
-            if not offloading:
+            if not first_value.offloading:
                 styles[row_id][label]['linestyle'] = '--'
 
     fig, axes = plt.subplots(rows_number, 2, sharex=True)
     togglable_legend = TogglableLegend(fig)
     for row_id, (ax_throughput, ax_cpu) in enumerate(axes):
         lines = []
-        for label, row in rows[row_id].items():
+        for label, row in rows_grouped[row_id].items():
             x_values = []
             throughput_values = []
             throughput_error = []
@@ -177,10 +118,10 @@ def iperf(results_path, colors={}):
             line, two, three = ax_cpu.errorbar(x_values, cpu_values, yerr=cpu_error, label=label, **kwargs)
             series_lines.extend((line,) + two + three)
             lines.append(series_lines)
-        ax_throughput.set_xlabel('number of bridges')
+        ax_throughput.set_xlabel(x_title)
         ax_throughput.set_ylabel('throughput (b/s)')
         ax_throughput.grid(True)
-        ax_cpu.set_xlabel('number of bridges')
+        ax_cpu.set_xlabel(x_title)
         ax_cpu.set_ylabel('cpu utilization (%)')
         ax_cpu.grid(True)
         ax_cpu.axis([None, None, 10, 105])
