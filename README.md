@@ -27,4 +27,4 @@ You need:
 * Open vSwitch ~2.3.0
 * Docker ~1.10.2
 
-Configure the environment with `source .env`; it will also install/compile the Python dependencies. Exit the pyvenv (and restart using you're good ole Python version) by running `deactivate`.
+Configure the environment with `source .env`; it will also install/compile the Python dependencies. Exit the pyvenv (and restart using your good ole Python version) by running `deactivate`.
