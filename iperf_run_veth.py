@@ -45,7 +45,7 @@ if __name__ == '__main__':
         #run the complete set!
         repetitions = 10
         cases = []
-        for (parallelism, mss, disable_offloading) in itertools.product((1, 2, 3, 4, 8, 12), ('default', 536), (True, False)):
+        for (parallelism, mss, disable_offloading) in itertools.product((1, 2, 3, 4, 8, 12, 16), ('default', 536), (True, False)):
             if (mss != 'default' or disable_offloading) and parallelism != 4:
                 continue
             cases.append((parallelism, mss, disable_offloading))

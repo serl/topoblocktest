@@ -51,7 +51,7 @@ if __name__ == '__main__':
         #run the complete set!
         repetitions = 10
         cases = []
-        for (n_ovs, ovs_ovs_links, ovs_ns_links, parallelism, mss, disable_offloading) in itertools.product((1, 2, 3, 5, 10, 20, 30, 50), ('patch', 'veth'), ('port', 'veth'), (1, 2, 3, 4, 8, 12), ('default', 536), (True, False)):
+        for (n_ovs, ovs_ovs_links, ovs_ns_links, parallelism, mss, disable_offloading) in itertools.product((1, 2, 3, 5, 10, 20, 30, 50), ('patch', 'veth'), ('port', 'veth'), (1, 2, 3, 4, 8, 12, 16), ('default', 536), (True, False)):
             if n_ovs is 0 and (ovs_ovs_links != 'veth' or ovs_ns_links != 'veth'):
                 continue
             if (mss != 'default' or disable_offloading) and parallelism != 4:
