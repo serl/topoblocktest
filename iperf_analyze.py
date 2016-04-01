@@ -3,14 +3,14 @@ from lib import analyze
 import sys
 
 def usage():
-    print('usage: python {} <ovs|ns> [csv|plot]'.format(*sys.argv))
+    print('usage: python {} <veth|ovs|ns> [csv|plot]'.format(*sys.argv))
     sys.exit(1)
 
 if len(sys.argv) < 2:
     usage()
 
 chain_type = sys.argv[1]
-if chain_type not in ('ovs', 'ns'):
+if chain_type not in ('veth', 'ovs', 'ns'):
     usage()
 
 action = 'csv'
@@ -21,7 +21,10 @@ except IndexError:
 if action not in ('csv', 'plot'):
     usage()
 
-cols, rows = analyze.iperf('results/chain_{}_iperf/'.format(chain_type))
+dir_prefix = chain_type
+if chain_type in ('ovs', 'ns'):
+    dir_prefix = 'chain_{}'.format(chain_type)
+cols, rows = analyze.iperf('results/{}_iperf/'.format(dir_prefix))
 
 
 if action == 'csv':
@@ -38,7 +41,12 @@ if action == 'csv':
     print(data_header)
     print(cpu_values)
 elif action == 'plot':
-    if chain_type == 'ovs':
+    if chain_type == 'veth':
+        colors = {
+            'veth': None, # automatic colors
+        }
+        x_title = ''
+    elif chain_type == 'ovs':
         colors = {
             'patch-port': 'red',
             'patch-veth': 'blue',
