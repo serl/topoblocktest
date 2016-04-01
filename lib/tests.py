@@ -17,13 +17,21 @@ def iperf(**in_settings):
         'result_file': None,
         'ns1': None,
         'ns2': None,
+        'duration': 30,
     }
     settings = defaults.copy()
     settings.update(in_settings)
     if settings['mss'] != 'default':
         settings['__mss_param'] = '--mss {}'.format(settings['mss'])
-    if settings['result_file'] is None:
-        raise ValueError('result_file missing')
+    for key in ('result_file', 'ns1', 'ns2'):
+        if settings[key] is None:
+            raise ValueError('{} missing'.format(key))
+    settings['duration'] = int(settings['duration'])
+    if settings['duration'] < 5:
+        raise ValueError('Duration must be integer >= 5')
+    settings['kill_after'] = settings['duration'] + 15
+    settings['iostat_interval'] = 5
+    settings['iostat_count'] = settings['duration'] // settings['iostat_interval']
 
     script = CommandBlock()
     script += """
@@ -36,8 +44,8 @@ def iperf(**in_settings):
     for i in `seq {repetitions}`; do
         echo -n "Running iperf (with {parallelism} clients) ($i)... "
         sleep 1
-        (LC_ALL=C iostat -c 5 6 | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' >> {result_file}.cpu) & IOSTAT_PID=$! # CPU monitoring
-        csvline=$(ip netns exec {ns2} timeout --signal=KILL 45 iperf --time 30 {__mss_param} --client $server_addr --reportstyle C --parallel {parallelism} | tail -n1)
+        (LC_ALL=C iostat -c {iostat_interval} {iostat_count} | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' >> {result_file}.cpu) & IOSTAT_PID=$! # CPU monitoring
+        csvline=$(ip netns exec {ns2} timeout --signal=KILL {kill_after} iperf --time {duration} {__mss_param} --client $server_addr --reportstyle C --parallel {parallelism} | tail -n1)
         if [ "$csvline" ]; then
             measure=${{csvline##*,}}
             echo measured $(numfmt --to=iec --suffix=b/s $measure)
