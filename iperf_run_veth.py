@@ -27,8 +27,7 @@ def test(parallelism=1, repetitions=1, mss='default', disable_offloading=False, 
     script += m.get_script()
     script += tests.iperf(**settings)
 
-    #script.run()
-    print(script)
+    script.run()
 
 if __name__ == '__main__':
     settings = None
