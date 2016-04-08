@@ -21,7 +21,12 @@ if __name__ == '__main__':
     def skip_fn(settings):
         if (settings['packet_size'] != 'default' or settings['disable_offloading']) and settings['parallelism'] != 4:
             return True
-        if (settings['zerocopy'] or settings['affinity']) and settings['iperf_name'] == 'iperf':
-            return True
+        if settings['iperf_name'] == 'iperf':
+            if settings['zerocopy'] or settings['affinity']:
+                return True
+            else:
+                #reuse already done tests (by generate_iperf_chain_ns.py), as if these two keys are present, a different hash will result
+                settings.pop('zerocopy')
+                settings.pop('affinity')
 
     test_master.generate_combinations(constants, variables, skip_fn)
