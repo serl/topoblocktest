@@ -6,11 +6,12 @@ import json
 import hashlib
 import random
 import itertools
-import lib.topologies as topologies
-import lib.tests as tests
-import lib.analyze as analyze
+from . import topologies
+from . import tests
+from . import analyze
 from lib.bash import CommandBlock
 from pydblite import Base
+
 results_dir = 'results/'
 
 
