@@ -1,5 +1,6 @@
 import re
 import os
+import os.path
 import pathlib
 import json
 import hashlib
@@ -7,8 +8,9 @@ import random
 import itertools
 import lib.topologies as topologies
 import lib.tests as tests
+import lib.analyze as analyze
 from lib.bash import CommandBlock
-
+from pydblite import Base
 results_dir = 'results/'
 
 
@@ -68,3 +70,31 @@ def run_all(target_repetitions=0):
             script = CommandBlock() + script_fh.read()
             print("Running {} ({}/{})...".format(script_file.name, current, len(to_run)))
             script.run()
+
+
+def get_results_db(clear_cache=False):
+    cache_file = 'cache/results.pdl'
+    db = Base(cache_file)
+
+    if clear_cache or not db.exists() or os.path.getmtime(cache_file) < os.path.getmtime(results_dir):
+        columns = set()
+        rows = []
+        p = pathlib.Path(results_dir)
+        for config_file in p.glob('*.config'):
+            with config_file.open() as config_fh:
+                settings_hash = config_file.stem
+                row = json.loads(config_fh.read())
+            row['hash'] = settings_hash
+            row['iostat_cpu'] = analyze.iostat_cpu(config_file.parent, settings_hash)
+            row['iperf_result'] = getattr(analyze, row['iperf_name'])(config_file.parent, settings_hash, row)
+            columns = columns | set(row.keys())
+            rows.append(row)
+
+        db.create(*columns, mode='override')
+        for r in rows:
+            db.insert(**r)
+        db.commit()
+    else:
+        db.open()
+
+    return db
