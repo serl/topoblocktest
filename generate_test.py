@@ -9,7 +9,7 @@ if __name__ == '__main__':
     parser.add_argument('--run', type=int, default=0, help='immediately run the test N times', metavar='N')
     # parser.add_argument('--collection', help='subdirectory where the results will be stored')
     type_group = parser.add_argument_group('test type')
-    type_group.add_argument('--iperf_name', default='iperf', choices=('iperf', 'iperf3', 'iperf3m'), help='choses the iperf version')
+    type_group.add_argument('--iperf_name', default='iperf2', choices=('iperf2', 'iperf3', 'iperf3m'), help='choses the iperf version')
     type_group.add_argument('--parallelism', type=int, default=1, help='number parallel flows')
     type_group.add_argument('--protocol', default='tcp', choices=('tcp', 'udp'), help='Protocol to test')
     type_group.add_argument('--packet_size', default='default', help='Packet size for UDP or Maximum Segment Size for TCP (MTU - 40 bytes)')

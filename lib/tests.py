@@ -14,7 +14,7 @@ def counter_increment(**settings):
     return 'counter=$(cat {result_file}.count 2>/dev/null) ; echo $((counter + 1)) > {result_file}.count'.format(**settings)
 
 
-def iperf(**in_settings):
+def iperf2(**in_settings):
     defaults = {
         'tcpdump': False,
         'parallelism': 1,
@@ -58,11 +58,12 @@ def iperf(**in_settings):
     echo -n "Running iperf (with {parallelism} clients)... "
     sleep 1
     (LC_ALL=C iostat -c {iostat_interval} {iostat_count} | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' >> {result_file}.cpu) & IOSTAT_PID=$! # CPU monitoring
-    csvline=$(ip netns exec {ns2} timeout --signal=KILL {kill_after} iperf --time {duration} {__udp_param}{__packet_size_param} --client $server_addr --reportstyle C --parallel {parallelism} | tail -n1)
-    if [ "$csvline" ]; then
-        measure=${{csvline##*,}}
-        echo measured $(numfmt --to=iec --suffix=b/s $measure)
-        echo $measure >> {result_file}.throughput
+    iperf2out="$(ip netns exec {ns2} timeout --signal=KILL {kill_after} iperf --time {duration} {__udp_param}{__packet_size_param} --client $server_addr --reportstyle C --parallel {parallelism})"
+    if [ "$iperf2out" ]; then
+        csvline="$(echo $iperf2out | tail -n1)"
+        echo measured $(numfmt --to=iec --suffix=b/s ${{csvline##*,}})
+        echo 'begin' >> {result_file}.iperf2
+        echo $iperf2out >> {result_file}.iperf2
         {counter_increment}
         sleep 5 #let the load decrease
     else

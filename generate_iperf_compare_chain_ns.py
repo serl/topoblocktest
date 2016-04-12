@@ -9,7 +9,7 @@ if __name__ == '__main__':
         'packet_size': 'default',
     }
     variables = {
-        'iperf_name': ('iperf', 'iperf3', 'iperf3m'),
+        'iperf_name': ('iperf2', 'iperf3', 'iperf3m'),
         'parallelism': (1, 2, 3, 4, 8, 12, 16),
         'disable_offloading': (False, True),
         'chain_len': (2, 3, 5, 10),

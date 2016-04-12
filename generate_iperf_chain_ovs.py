@@ -3,7 +3,7 @@ import lib.test_master as test_master
 
 if __name__ == '__main__':
     constants = {
-        'iperf_name': 'iperf',
+        'iperf_name': 'iperf2',
         'protocol': 'tcp',
         'topology': 'ovs_chain',
     }

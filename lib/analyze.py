@@ -10,12 +10,10 @@ def iostat_cpu(directory, settings_hash):
     with directory.joinpath(settings_hash + '.cpu').open() as file_handler:
         keys = ('user', 'nice', 'system', 'iowait', 'steal', 'idle')
         values_list = [[], [], [], [], [], []]
-        len_values_check = 0
         skip_line = False
         for line in file_handler:
             if skip_line or line.startswith('avg-cpu:'):
                 skip_line = not skip_line  # if there's avg-cpu, we skip two lines
-                len_values_check += 0.5  # as we do it twice
                 continue
             row = map(float, line.split())
             for i, v in enumerate(row):
@@ -92,3 +90,30 @@ def iperf3m(directory, settings_hash, settings):
         #'cpu': not clear: how should I interpret the results from iperf3?
         'fairness': mean_confidence(fairnesses),
     }
+
+
+def get_chain_analysis(db_query, row_info_fn, grouping_fn=lambda row_element: (0,)):
+    columns = sorted(list(set((r['chain_len'] for r in db_query))))
+    rows = {}  # key => {label => label of the serie, color => color, row => [db record, ...]}
+    for r in db_query:
+        key, label, color = row_info_fn(r)
+        if key not in rows:
+            rows[key] = {'label': label, 'color': color, 'row': [None] * len(columns)}
+        col_index = columns.index(r['chain_len'])
+        if rows[key]['row'][col_index] is not None:
+            raise ValueError("Multiple values for serie '{}' at chain_len '{}'.\nHere's the two we have now:\n{}\nand\n{}".format(label, r['chain_len'], r, rows[key]['row'][col_index]))
+        rows[key]['row'][col_index] = r
+
+    rows_sorted = OrderedDict()  # label => {label => label of the serie, color => color, row => [db record, ...]}
+    rows_grouped = {}  # group_id => OrderedDict(*as above*)
+    for k in sorted(rows.keys()):
+        row = rows[k]
+        rows_sorted[row['label']] = row
+        first_obj = [c for c in row['row'] if c is not None][0]
+        for group_id in grouping_fn(first_obj):
+            if group_id not in rows_grouped:
+                rows_grouped[group_id] = OrderedDict()
+            rows_grouped[group_id][row['label']] = row
+    rows_grouped_sorted = OrderedDict([(i, rows_grouped[i]) for i in sorted(rows_grouped.keys())])
+
+    return columns, rows_sorted, rows_grouped_sorted
