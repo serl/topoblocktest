@@ -21,7 +21,7 @@ if __name__ == '__main__':
     def skip_fn(settings):
         if (settings['packet_size'] != 'default' or settings['disable_offloading']) and settings['parallelism'] != 4:
             return True
-        if settings['iperf_name'] == 'iperf':
+        if settings['iperf_name'] == 'iperf2':
             if settings['zerocopy'] or settings['affinity']:
                 return True
             else:
