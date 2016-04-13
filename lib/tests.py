@@ -32,6 +32,8 @@ def iperf2(**in_settings):
     settings['counter_increment'] = counter_increment(**settings)
     if settings['protocol'] == 'udp':
         settings['__udp_param'] = '--udp --bandwidth 100G '  # will generate a warning on the server side, but we don't care
+    else:
+        settings['protocol'] = 'tcp'
     if settings['packet_size'] != 'default':
         if settings['protocol'] == 'udp':
             settings['__packet_size_param'] = '--len {} '.format(settings['packet_size'])
@@ -55,7 +57,7 @@ def iperf2(**in_settings):
         ip netns exec {ns1} tcpdump -s 96 -w {result_file}.pcap &>/dev/null & TCPDUMP_PID=$!
     fi
     server_addr=$(ip netns exec {ns1} ip addr show scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
-    echo -n "Running iperf (with {parallelism} clients)... "
+    echo -n "Running iperf2 over {protocol} (with {parallelism} clients)... "
     sleep 1
     (LC_ALL=C iostat -c {iostat_interval} {iostat_count} | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' >> {result_file}.cpu) & IOSTAT_PID=$! # CPU monitoring
     iperf2out="$(ip netns exec {ns2} timeout --signal=KILL {kill_after} iperf --time {duration} {__udp_param}{__packet_size_param} --client $server_addr --reportstyle C --parallel {parallelism})"
@@ -63,7 +65,7 @@ def iperf2(**in_settings):
         csvline="$(echo $iperf2out | tail -n1)"
         echo measured $(numfmt --to=iec --suffix=b/s ${{csvline##*,}})
         echo 'begin' >> {result_file}.iperf2
-        echo $iperf2out >> {result_file}.iperf2
+        echo "$iperf2out" >> {result_file}.iperf2
         {counter_increment}
         sleep 5 #let the load decrease
     else
@@ -102,6 +104,8 @@ def iperf3(**in_settings):
             raise ValueError('{} missing'.format(key))
     if settings['protocol'] == 'udp':
         settings['__udp_param'] = '--udp --bandwidth 0 '
+    else:
+        settings['protocol'] = 'tcp'
     if settings['packet_size'] != 'default':
         if settings['protocol'] == 'udp':
             settings['__packet_size_param'] = '--length {} '.format(settings['packet_size'])
@@ -126,7 +130,7 @@ def iperf3(**in_settings):
         ip netns exec {ns1} tcpdump -s 96 -w {result_file}.pcap &>/dev/null & TCPDUMP_PID=$!
     fi
     server_addr=$(ip netns exec {ns1} ip addr show scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
-    echo -n "Running iperf3 (with {parallelism} clients)... "
+    echo -n "Running iperf3 over {protocol} (with {parallelism} clients)... "
     sleep 1
     (LC_ALL=C iostat -c {iostat_interval} {iostat_count} | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' >> {result_file}.cpu) & IOSTAT_PID=$! # CPU monitoring
     ip netns exec {ns2} timeout --signal=KILL {kill_after} iperf3 --time {duration} --interval 0 {__affinity_param}{__zerocopy_param}{__udp_param}{__packet_size_param} --parallel {parallelism} --client $server_addr --json >> {result_file}.iperf3
@@ -169,6 +173,8 @@ def iperf3m(**in_settings):
             raise ValueError('{} missing'.format(key))
     if settings['protocol'] == 'udp':
         settings['__udp_param'] = '--udp --bandwidth 0 '
+    else:
+        settings['protocol'] = 'tcp'
     if settings['packet_size'] != 'default':
         if settings['protocol'] == 'udp':
             settings['__packet_size_param'] = '--length {} '.format(settings['packet_size'])
@@ -194,7 +200,7 @@ def iperf3m(**in_settings):
         ip netns exec {ns1} tcpdump -s 96 -w {result_file}.pcap &>/dev/null & TCPDUMP_PID=$!
     fi
     server_addr=$(ip netns exec {ns1} ip addr show scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
-    echo "Running iperf3 (with {parallelism} servers and clients)... "
+    echo "Running iperf3 over {protocol} (with {parallelism} servers and clients)... "
     sleep 1
     (LC_ALL=C iostat -c {iostat_interval} {iostat_count} | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' >> {result_file}.cpu) & IOSTAT_PID=$! # CPU monitoring
     for i in `seq {parallelism}`; do
