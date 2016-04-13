@@ -11,6 +11,8 @@ from . import tests
 from . import analyze
 from lib.bash import CommandBlock
 from pydblite import Base
+import warnings
+warnings.formatwarning = lambda message, category, *a: '{}: {}\n'.format(category.__name__, message)
 
 results_dir = 'results/'
 
@@ -78,6 +80,7 @@ def get_results_db(clear_cache=False):
     db = Base(cache_file)
 
     if clear_cache or not db.exists() or os.path.getmtime(cache_file) < os.path.getmtime(results_dir):
+        warnings.warn('Rebuilding results cache...')
         columns = set()
         rows = []
         p = pathlib.Path(results_dir)
@@ -95,7 +98,9 @@ def get_results_db(clear_cache=False):
         for r in rows:
             db.insert(**r)
         db.commit()
+        warnings.warn('Results cache built.')
     else:
+        warnings.warn('Reusing results cache.')
         db.open()
 
     return db
