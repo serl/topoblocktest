@@ -1,5 +1,6 @@
-from . import analyze
-#imports are inside functions!!!1
+import warnings
+# the other imports are inside functions!!!1
+
 
 def import_matplotlib(interactive=True):
     if interactive:
@@ -8,7 +9,9 @@ def import_matplotlib(interactive=True):
     import matplotlib.pyplot as plt
     return plt
 
+
 class TogglableLegend:
+
     def __init__(self, fig):
         self.fig = fig
         self.connection_id = fig.canvas.mpl_connect('pick_event', self.__onpick)
@@ -36,66 +39,25 @@ class TogglableLegend:
             legline.set_alpha(0.4)
         self.fig.canvas.draw()
 
-def iperf(results_path=None, columns=None, rows=None, x_title='', colors={}):
-    #import
+
+def throughput_cpu(columns, rows_grouped, x_title='', style_fn=None):
+    if len(rows_grouped) == 0:
+        raise ValueError('Nothing to plot')
+    if style_fn is None:
+        style_fn = lambda row_element, group_id: {}
+    # import
     from collections import OrderedDict
     plt = import_matplotlib()
 
-    if columns is None and rows is None:
-        columns, rows = analyze.iperf(results_path)
-
-    rows_number = 3
-    rows_grouped = []
-    styles = []
-    for i in range(rows_number):
-        rows_grouped.append(OrderedDict()) # label of the serie => [ChainResult]
-        styles.append({}) # label of the serie => **kwargs for matplotlib
-    for label, row in rows.items():
-        first_value = [c for c in row if c is not None][0]
-        basestyle = { 'linestyle': '-', 'markersize': 7 }
-        if first_value.links_description in colors:
-            basestyle['color'] = colors[first_value.links_description]
-        if first_value.offloading and first_value.mss == 'default':
-            if first_value.parallelism <= 4:
-                row_id = 0
-                rows_grouped[row_id][label] = row
-                styles[row_id][label] = basestyle.copy()
-                if first_value.parallelism is 1:
-                    styles[row_id][label]['marker'] = 'o'
-                elif first_value.parallelism is 2:
-                    styles[row_id][label]['marker'] = '^'
-                elif first_value.parallelism is 3:
-                    styles[row_id][label]['marker'] = 'v'
-                elif first_value.parallelism is 4:
-                    styles[row_id][label]['marker'] = 's'
-            if first_value.parallelism >= 4:
-                row_id = 1
-                rows_grouped[row_id][label] = row
-                styles[row_id][label] = basestyle.copy()
-                if first_value.parallelism is 4:
-                    styles[row_id][label]['marker'] = 's'
-                elif first_value.parallelism is 8:
-                    styles[row_id][label]['marker'] = 'o'
-                elif first_value.parallelism is 12:
-                    styles[row_id][label]['marker'] = '^'
-                elif first_value.parallelism is 16:
-                    styles[row_id][label]['marker'] = 'v'
-        if first_value.parallelism == 4:
-            row_id = 2
-            rows_grouped[row_id][label] = row
-            styles[row_id][label] = basestyle.copy()
-            if first_value.mss == 'default':
-                styles[row_id][label]['marker'] = '^'
-            else:
-                styles[row_id][label]['marker'] = 'o'
-            if not first_value.offloading:
-                styles[row_id][label]['linestyle'] = '--'
-
-    fig, axes = plt.subplots(rows_number, 2, sharex=True)
+    fig, axes = plt.subplots(len(rows_grouped), 2, sharex=True)
+    if len(rows_grouped) == 1:
+        axes = (axes,)
     togglable_legend = TogglableLegend(fig)
     for row_id, (ax_throughput, ax_cpu) in enumerate(axes):
         lines = []
-        for label, row in rows_grouped[row_id].items():
+        for label, rowdetails in rows_grouped[row_id].items():
+            row = rowdetails['row']
+            row_element = None  # used for the style_fn
             x_values = []
             throughput_values = []
             throughput_error = []
@@ -104,14 +66,22 @@ def iperf(results_path=None, columns=None, rows=None, x_title='', colors={}):
             for i, col in enumerate(columns):
                 try:
                     r = row[i]
-                    throughput_values.append(r.throughput[0])
-                    throughput_error.append(r.throughput[1])
-                    cpu_values.append(100-r.cpu[5][0]) # 100-idle
-                    cpu_error.append(r.cpu[5][1])
+                    if r is None:
+                        # warnings.warn("Missing value on serie '{}' for x value {}".format(label, col), RuntimeWarning)
+                        continue
+                    row_element = r
+                    throughput_values.append(r['iperf_result']['throughput'][0])
+                    throughput_error.append(r['iperf_result']['throughput'][1])
+                    cpu_values.append(100 - r['iostat_cpu']['idle'][0])  # 100 - idle
+                    cpu_error.append(r['iostat_cpu']['idle'][1])
                     x_values.append(col)
-                except AttributeError:
+                except KeyError as e:
+                    raise e
                     pass
-            kwargs = styles[row_id][label] if label in styles[row_id] else {}
+            # kwargs = styles[row_id][label] if label in styles[row_id] else {}
+            basestyle = {'linestyle': '-', 'markersize': 7}
+            kwargs = basestyle.copy()
+            kwargs.update(style_fn(row_element, row_id))
             series_lines = []
             line, two, three = ax_throughput.errorbar(x_values, throughput_values, yerr=throughput_error, label=label, **kwargs)
             series_lines.extend((line,) + two + three)

@@ -138,19 +138,21 @@ def iperf3m(directory, settings_hash, settings):
     }
 
 
-def get_analysis_table(db_query, x_axis, row_info_fn, grouping_fn=lambda row_element: (0,)):
+def get_analysis_table(db_query, x_axis, row_info_fn, grouping_fn=None):
+    if grouping_fn is None:
+        grouping_fn = lambda row_element: (0,)
     columns = sorted(list(set((r[x_axis] for r in db_query))))
-    rows = {}  # key => {label => label of the serie, color => color, row => [db record, ...]}
+    rows = {}  # key => {label => label of the serie, row => [db record, ...]}
     for r in db_query:
-        key, label, color = row_info_fn(r)
+        key, label = row_info_fn(r)
         if key not in rows:
-            rows[key] = {'label': label, 'color': color, 'row': [None] * len(columns)}
+            rows[key] = {'label': label, 'row': [None] * len(columns)}
         col_index = columns.index(r[x_axis])
         if rows[key]['row'][col_index] is not None:
             raise ValueError("Multiple values for serie '{}' at '{}' '{}'.\nHere's the two we have now:\n{}\nand\n{}".format(label, x_axis, r[x_axis], r, rows[key]['row'][col_index]))
         rows[key]['row'][col_index] = r
 
-    rows_sorted = OrderedDict()  # label => {label => label of the serie, color => color, row => [db record, ...]}
+    rows_sorted = OrderedDict()  # label => {label => label of the serie, row => [db record, ...]}
     rows_grouped = {}  # group_id => OrderedDict(*as above*)
     for k in sorted(rows.keys()):
         row = rows[k]

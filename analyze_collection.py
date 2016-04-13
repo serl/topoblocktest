@@ -5,8 +5,46 @@ import sys
 
 
 def run_analysis(collection, action):
-    db = get_results_db(True)
-    grouping_fn=lambda row_element: (0,)
+    db = get_results_db()
+    # defaults
+    x_title = ''
+    x_axis = ''
+    db_query = db
+    get_link_label = lambda r: 'unknown'
+    row_info_fn = None
+    grouping_fn = None
+
+    def style_fn(r, group_id):
+        colors = {
+            'patch-port': 'red',
+            'patch-veth': 'blue',
+            'veth-port': 'green',
+            'veth-veth': 'black',
+            'direct-veth': 'purple',
+            'ovs-port': 'green',
+            'ovs-veth': 'black',
+        }
+        if r['parallelism'] == 1:
+            marker = 's'
+        elif r['parallelism'] == 2:
+            marker = '^'
+        elif r['parallelism'] == 3:
+            marker = 'v'
+        elif r['parallelism'] == 4:
+            marker = 'o'
+            if r['packet_size'] != 'default':
+                marker = '^'
+        elif r['parallelism'] == 8:
+            marker = 's'
+        elif r['parallelism'] == 12:
+            marker = '^'
+        elif r['parallelism'] == 16:
+            marker = 'v'
+        return {
+            'color': colors[get_link_label(r)],
+            'linestyle': '--' if r['disable_offloading'] else '-',
+            'marker': marker,
+        }
 
     if collection == 'veth':
         x_title = 'parallelism'
@@ -16,8 +54,9 @@ def run_analysis(collection, action):
         def row_info_fn(r):
             key = "{}-{:05d}".format('z' if r['disable_offloading'] else 'a', r['packet_size'] if r['packet_size'] != 'default' else 0)
             label = "{}offloading, pkt: {packet_size}".format('no ' if r['disable_offloading'] else '', **r)
-            color = None
-            return key, label, color
+            return key, label
+
+        style_fn = lambda r, group_id: {'linestyle': '--' if r['disable_offloading'] else '-', }
 
     elif collection == 'ovs':
         x_title = 'number of bridges'
@@ -27,14 +66,7 @@ def run_analysis(collection, action):
         def row_info_fn(r):
             key = "{}-{:05d}-{parallelism:05d}-{ovs_ovs_links}-{ovs_ns_links}".format('z' if r['disable_offloading'] else 'a', r['packet_size'] if r['packet_size'] != 'default' else 0, **r)
             label = "{ovs_ovs_links}-{ovs_ns_links} {parallelism} ({}offloading, pkt: {packet_size})".format('no ' if r['disable_offloading'] else '', **r)
-            colors = {
-                'patch-port': 'red',
-                'patch-veth': 'blue',
-                'veth-port': 'green',
-                'veth-veth': 'black',
-            }
-            color = colors["{ovs_ovs_links}-{ovs_ns_links}".format(**r)]
-            return key, label, color
+            return key, label
 
         def grouping_fn(r):
             groups = []
@@ -46,17 +78,40 @@ def run_analysis(collection, action):
             if r['parallelism'] == 4:
                 groups.append(2)
             return groups
+
+        get_link_label = lambda r: "{ovs_ovs_links}-{ovs_ns_links}".format(**r)
+
     elif collection == 'ns':
-        colors = {
-            'direct-veth': 'purple',
-            'ovs-port': 'green',
-            'ovs-veth': 'black',
-        }
         x_title = 'number of namespaces'
+        x_axis = 'chain_len'  # key on result dict
         db_query = [r for r in db if r['topology'] == 'ns_chain' and r['iperf_name'] == 'iperf2']
+
+        def get_link_label(r):
+            link_label = 'direct-veth'
+            if r['use_ovs']:
+                link_label = 'ovs-{ovs_ns_links}'.format(**r)
+            return link_label
+
+        def row_info_fn(r):
+            key = "{}-{:05d}-{parallelism:05d}-{}-{ovs_ns_links}".format('z' if r['disable_offloading'] else 'a', r['packet_size'] if r['packet_size'] != 'default' else 0, 'a' if r['use_ovs'] else 'z', **r)
+            label = "{} {parallelism} ({}offloading, pkt: {packet_size})".format(get_link_label(r), 'no ' if r['disable_offloading'] else '', **r)
+            return key, label
+
+        def grouping_fn(r):
+            groups = []
+            if not r['disable_offloading'] and r['packet_size'] == 'default':
+                if r['parallelism'] <= 4:
+                    groups.append(0)
+                if r['parallelism'] >= 4:
+                    groups.append(1)
+            if r['parallelism'] == 4:
+                groups.append(2)
+            return groups
+
     elif collection == 'iperf_cmp':
         x_title = 'number of namespaces'
         x_axis = 'chain_len'  # key on result dict
+        raise Exception('not implemented')
 
     cols, rows, rows_grouped = analyze.get_analysis_table(db_query, x_axis, row_info_fn, grouping_fn)
 
@@ -80,7 +135,7 @@ def run_analysis(collection, action):
         print(data_header)
         print(fairness_values)
     elif action == 'plot':
-        plot.chain(cols, rows_grouped, x_title)
+        plot.throughput_cpu(cols, rows_grouped, x_title, style_fn)
 
 
 def usage():
