@@ -2,6 +2,7 @@ import re
 import pathlib
 import itertools
 import json
+import warnings
 from .math_utils import mean_confidence, jain_fairness
 from collections import OrderedDict
 
@@ -22,10 +23,47 @@ def iostat_cpu(directory, settings_hash):
         return cpu
 
 
-def iperf(directory, settings_hash, settings):
-    with directory.joinpath(settings_hash + '.throughput').open() as file_handler:
-        values = [int(line.rstrip()) for line in file_handler]
-    return {'throughput': mean_confidence(values)}
+def iperf2(directory, settings_hash, settings):
+    with directory.joinpath(settings_hash + '.iperf2').open() as file_handler:
+        tests = []
+        cur_test = None  # it is instantiated and added to `tests` each time the keywork `begin` is read from the file
+        for line in file_handler:
+            if line.rstrip() == 'begin':
+                cur_test = []
+                tests.append(cur_test)
+            else:
+                cur_test.append(line.rstrip().split(','))
+    throughputs = []
+    fairnesses = []
+    for test in tests:
+        if settings['parallelism'] == 1:
+            if len(test) != 1:
+                raise ValueError('For test {}, the result sounds strange (parallelism 1, but {} lines in the csv).'.format(settings_hash, len(test)))
+            throughputs.append(float(test[0][8]))
+            fairnesses.append(1)
+        else:
+            if len(test) != settings['parallelism'] + 1:
+                raise ValueError('For test {}, the result sounds strange (parallelism {}, but {} lines in the csv).'.format(settings_hash, settings['parallelism'], len(test)))
+            bytes_list = [int(x[7]) for x in test[:-1]]
+            bytes_sum = sum(bytes_list)
+            bytes_total = int(test[-1][7])
+            iperf_throughput = float(test[-1][8])
+            if bytes_sum != bytes_total:
+                raise ValueError('For test {}, the result sounds strange (sum of transfers {}, but master result {}).'.format(settings_hash, bytes_sum, bytes_total))
+
+            durations = set([x[6] for x in test])
+            if len(durations) > 1:
+                warnings.warn('For test {}, the transfers have different durations: {}.'.format(settings_hash, durations), RuntimeWarning)
+            # as this previous warning actually pops out, maybe it's better to stick on iperf output for throughput and not calculate it by myself, as in the next three lines
+            # t_begin, t_end = map(float, test[-1][6].split('-'))
+            # duration = t_end - t_begin
+            # throughputs.append(8.0 * bytes_total / duration)
+            throughputs.append(iperf_throughput)
+            fairnesses.append(jain_fairness(bytes_list))
+    return {
+        'throughput': mean_confidence(throughputs),
+        'fairness': mean_confidence(fairnesses),
+    }
 
 
 def read_jsons(file_handler):
