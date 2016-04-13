@@ -8,6 +8,13 @@ from .math_utils import mean_confidence, jain_fairness
 from collections import OrderedDict
 
 
+def checked_mean_confidence(throughputs, settings_hash):
+    throughput_meanconf = mean_confidence(throughputs)
+    if 2 * throughput_meanconf[1] > throughput_meanconf[0]:
+        warnings.warn('For test {}, the conf interval for throughput is huge. Raw values: {}'.format(settings_hash, throughputs), RuntimeWarning)
+    return throughput_meanconf
+
+
 def iostat_cpu(directory, settings_hash):
     with directory.joinpath(settings_hash + '.cpu').open() as file_handler:
         keys = ('user', 'nice', 'system', 'iowait', 'steal', 'idle')
@@ -62,7 +69,7 @@ def iperf2(directory, settings_hash, settings):
             throughputs.append(iperf_throughput)
             fairnesses.append(jain_fairness(bytes_list))
     return {
-        'throughput': mean_confidence(throughputs),
+        'throughput': checked_mean_confidence(throughputs, settings_hash),
         'fairness': mean_confidence(fairnesses),
     }
 
@@ -99,7 +106,7 @@ def iperf3(directory, settings_hash, settings):
         bytes_streams = [stream['receiver']['bytes'] for stream in json_end['streams']]
         fairnesses.append(jain_fairness(bytes_streams))
     return {
-        'throughput': mean_confidence(throughputs),
+        'throughput': checked_mean_confidence(throughputs, settings_hash),
         'cpu': {'host': mean_confidence([x[0] for x in cpu_utilizations]), 'remote': mean_confidence([x[1] for x in cpu_utilizations])},
         'fairness': mean_confidence(fairnesses),
     }
@@ -125,7 +132,7 @@ def iperf3m(directory, settings_hash, settings):
         throughputs.append(throughput)
         fairnesses.append(jain_fairness(bytes_streams))
     return {
-        'throughput': mean_confidence(throughputs),
+        'throughput': checked_mean_confidence(throughputs, settings_hash),
         #'cpu': not clear: how should I interpret the results from iperf3?
         'fairness': mean_confidence(fairnesses),
     }
