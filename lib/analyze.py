@@ -55,7 +55,7 @@ def iperf3(directory, settings_hash, settings):
     fairnesses = []
     for json_dict in json_dicts:
         json_end = json_dict['end']
-        throughputs.append(json_end['sum_received']['bytes'] / json_end['sum_received']['seconds'] * 8)
+        throughputs.append(8.0 * json_end['sum_received']['bytes'] / json_end['sum_received']['seconds'])
         cpu_utilizations.append((json_end['cpu_utilization_percent']['host_total'], json_end['cpu_utilization_percent']['remote_total']))
         bytes_streams = [stream['receiver']['bytes'] for stream in json_end['streams']]
         fairnesses.append(jain_fairness(bytes_streams))
@@ -81,7 +81,7 @@ def iperf3m(directory, settings_hash, settings):
         bytes_streams = []
         for thread_id in range(settings['parallelism']):
             json_end = json_dicts[thread_id][test_num]['end']
-            throughput += json_end['sum_received']['bytes'] / json_end['sum_received']['seconds'] * 8
+            throughput += 8.0 * json_end['sum_received']['bytes'] / json_end['sum_received']['seconds']
             bytes_streams.append(json_end['sum_received']['bytes'])
         throughputs.append(throughput)
         fairnesses.append(jain_fairness(bytes_streams))
