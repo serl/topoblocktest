@@ -2,7 +2,7 @@ import re
 import pathlib
 import itertools
 import json
-from .math_utils import mean_confidence
+from .math_utils import mean_confidence, jain_fairness
 from collections import OrderedDict
 
 
@@ -58,7 +58,7 @@ def iperf3(directory, settings_hash, settings):
         throughputs.append(json_end['sum_received']['bytes'] / json_end['sum_received']['seconds'] * 8)
         cpu_utilizations.append((json_end['cpu_utilization_percent']['host_total'], json_end['cpu_utilization_percent']['remote_total']))
         bytes_streams = [stream['receiver']['bytes'] for stream in json_end['streams']]
-        fairnesses.append(sum(bytes_streams)**2 / (len(bytes_streams) * sum([x**2 for x in bytes_streams])))  # Jain's fairness index
+        fairnesses.append(jain_fairness(bytes_streams))
     return {
         'throughput': mean_confidence(throughputs),
         'cpu': {'host': mean_confidence([x[0] for x in cpu_utilizations]), 'remote': mean_confidence([x[1] for x in cpu_utilizations])},
@@ -84,7 +84,7 @@ def iperf3m(directory, settings_hash, settings):
             throughput += json_end['sum_received']['bytes'] / json_end['sum_received']['seconds'] * 8
             bytes_streams.append(json_end['sum_received']['bytes'])
         throughputs.append(throughput)
-        fairnesses.append(sum(bytes_streams)**2 / (len(bytes_streams) * sum([x**2 for x in bytes_streams])))  # Jain's fairness index
+        fairnesses.append(jain_fairness(bytes_streams))
     return {
         'throughput': mean_confidence(throughputs),
         #'cpu': not clear: how should I interpret the results from iperf3?
