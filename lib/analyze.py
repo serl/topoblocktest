@@ -131,16 +131,16 @@ def iperf3m(directory, settings_hash, settings):
     }
 
 
-def get_chain_analysis(db_query, row_info_fn, grouping_fn=lambda row_element: (0,)):
-    columns = sorted(list(set((r['chain_len'] for r in db_query))))
+def get_analysis_table(db_query, x_axis, row_info_fn, grouping_fn=lambda row_element: (0,)):
+    columns = sorted(list(set((r[x_axis] for r in db_query))))
     rows = {}  # key => {label => label of the serie, color => color, row => [db record, ...]}
     for r in db_query:
         key, label, color = row_info_fn(r)
         if key not in rows:
             rows[key] = {'label': label, 'color': color, 'row': [None] * len(columns)}
-        col_index = columns.index(r['chain_len'])
+        col_index = columns.index(r[x_axis])
         if rows[key]['row'][col_index] is not None:
-            raise ValueError("Multiple values for serie '{}' at chain_len '{}'.\nHere's the two we have now:\n{}\nand\n{}".format(label, r['chain_len'], r, rows[key]['row'][col_index]))
+            raise ValueError("Multiple values for serie '{}' at '{}' '{}'.\nHere's the two we have now:\n{}\nand\n{}".format(label, x_axis, r[x_axis], r, rows[key]['row'][col_index]))
         rows[key]['row'][col_index] = r
 
     rows_sorted = OrderedDict()  # label => {label => label of the serie, color => color, row => [db record, ...]}

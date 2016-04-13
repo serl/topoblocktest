@@ -4,18 +4,28 @@ from lib.test_master import get_results_db
 import sys
 
 
-def analyze_chain(chain_type, action):
+def run_analysis(collection, action):
     db = get_results_db(True)
+    grouping_fn=lambda row_element: (0,)
 
-    if chain_type == 'ovs':
+    if collection == 'veth':
+        x_title = 'parallelism'
+        x_axis = 'parallelism'  # key on result dict
+        db_query = [r for r in db if r['topology'] == 'direct_veth' and r['iperf_name'] == 'iperf2']
+
+        def row_info_fn(r):
+            key = "{}-{:05d}".format('z' if r['disable_offloading'] else 'a', r['packet_size'] if r['packet_size'] != 'default' else 0)
+            label = "{}offloading, pkt: {packet_size}".format('no ' if r['disable_offloading'] else '', **r)
+            color = None
+            return key, label, color
+
+    elif collection == 'ovs':
         x_title = 'number of bridges'
+        x_axis = 'chain_len'  # key on result dict
         db_query = [r for r in db if r['topology'] == 'ovs_chain' and r['iperf_name'] == 'iperf2']
 
         def row_info_fn(r):
-            key = ''
-            key += 'z' if r['disable_offloading'] else 'a'
-            key += '{:05d}'.format(r['packet_size']) if r['packet_size'] != 'default' else '00000'
-            key += "{parallelism:05d}-{ovs_ovs_links}-{ovs_ns_links}".format(**r)
+            key = "{}-{:05d}-{parallelism:05d}-{ovs_ovs_links}-{ovs_ns_links}".format('z' if r['disable_offloading'] else 'a', r['packet_size'] if r['packet_size'] != 'default' else 0, **r)
             label = "{ovs_ovs_links}-{ovs_ns_links} {parallelism} ({}offloading, pkt: {packet_size})".format('no ' if r['disable_offloading'] else '', **r)
             colors = {
                 'patch-port': 'red',
@@ -36,7 +46,7 @@ def analyze_chain(chain_type, action):
             if r['parallelism'] == 4:
                 groups.append(2)
             return groups
-    elif chain_type == 'ns':
+    elif collection == 'ns':
         colors = {
             'direct-veth': 'purple',
             'ovs-port': 'green',
@@ -44,10 +54,11 @@ def analyze_chain(chain_type, action):
         }
         x_title = 'number of namespaces'
         db_query = [r for r in db if r['topology'] == 'ns_chain' and r['iperf_name'] == 'iperf2']
-    elif chain_type == 'iperf_cmp':
+    elif collection == 'iperf_cmp':
         x_title = 'number of namespaces'
+        x_axis = 'chain_len'  # key on result dict
 
-    cols, rows, rows_grouped = analyze.get_chain_analysis(db_query, row_info_fn, grouping_fn)
+    cols, rows, rows_grouped = analyze.get_analysis_table(db_query, x_axis, row_info_fn, grouping_fn)
 
     if action == 'csv':
         data_header = 'label,' + ',,'.join(map(str, cols)) + ','
@@ -73,15 +84,15 @@ def analyze_chain(chain_type, action):
 
 
 def usage():
-    print('usage: python {} <ovs|ns|iperf_cmp> [csv|plot]'.format(*sys.argv))
+    print('usage: python {} <veth|ovs|ns|iperf_cmp> [csv|plot]'.format(*sys.argv))
     sys.exit(1)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         usage()
 
-    chain_type = sys.argv[1]
-    if chain_type not in ('ovs', 'ns', 'iperf_cmp'):
+    collection = sys.argv[1]
+    if collection not in ('veth', 'ovs', 'ns', 'iperf_cmp'):
         usage()
 
     action = 'csv'
@@ -92,4 +103,4 @@ if __name__ == '__main__':
     if action not in ('csv', 'plot'):
         usage()
 
-    analyze_chain(chain_type, action)
+    run_analysis(collection, action)
