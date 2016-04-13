@@ -3,6 +3,7 @@ import pathlib
 import itertools
 import json
 import warnings
+warnings.formatwarning = lambda message, category, *a: '{}: {}\n'.format(category.__name__, message)
 from .math_utils import mean_confidence, jain_fairness
 from collections import OrderedDict
 
