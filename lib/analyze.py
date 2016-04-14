@@ -53,6 +53,8 @@ def iperf2(directory, settings_hash, settings):
             if len(test) != settings['parallelism'] + 1:
                 raise ValueError('For test {}, the result sounds strange (parallelism {}, but {} lines in the csv).'.format(settings_hash, settings['parallelism'], len(test)))
             bytes_list = [int(x[7]) for x in test[:-1]]
+            for n_bytes in [b for b in bytes_list if b < 0]:
+                raise ValueError('For test {}, the result sounds strange (we have one transfer of {} packets; that is a negative number).'.format(settings_hash, n_bytes))
             bytes_sum = sum(bytes_list)
             bytes_total = int(test[-1][7])
             iperf_throughput = float(test[-1][8])
@@ -104,6 +106,10 @@ def iperf3(directory, settings_hash, settings):
         throughputs.append(8.0 * json_end['sum_received']['bytes'] / json_end['sum_received']['seconds'])
         cpu_utilizations.append((json_end['cpu_utilization_percent']['host_total'], json_end['cpu_utilization_percent']['remote_total']))
         bytes_streams = [stream['receiver']['bytes'] for stream in json_end['streams']]
+        if len(bytes_streams) != settings['parallelism'] :
+            raise ValueError('For test {}, the result sounds strange (parallelism {}, but {} transfers reported).'.format(settings_hash, settings['parallelism'], len(bytes_streams)))
+        for n_bytes in [b for b in bytes_streams if b < 0]:
+            raise ValueError('For test {}, the result sounds strange (we have one transfer of {} packets; that is a negative number).'.format(settings_hash, n_bytes))
         fairnesses.append(jain_fairness(bytes_streams))
     return {
         'throughput': checked_mean_confidence(throughputs, settings_hash),
@@ -127,8 +133,11 @@ def iperf3m(directory, settings_hash, settings):
         bytes_streams = []
         for thread_id in range(settings['parallelism']):
             json_end = json_dicts[thread_id][test_num]['end']
-            throughput += 8.0 * json_end['sum_received']['bytes'] / json_end['sum_received']['seconds']
-            bytes_streams.append(json_end['sum_received']['bytes'])
+            n_bytes = json_end['sum_received']['bytes']
+            if n_bytes < 0:
+                raise ValueError('For test {}, the result sounds strange (we have one transfer of {} packets; that is a negative number).'.format(settings_hash, n_bytes))
+            throughput += 8.0 * n_bytes / json_end['sum_received']['seconds']
+            bytes_streams.append(n_bytes)
         throughputs.append(throughput)
         fairnesses.append(jain_fairness(bytes_streams))
     return {
