@@ -73,6 +73,7 @@ def run_all(target_repetitions=0):
             script = CommandBlock() + script_fh.read()
             print("Running {} ({}/{})...".format(script_file.name, current, len(to_run)))
             script.run()
+    return len(to_run)
 
 
 def get_results_db(clear_cache=False):

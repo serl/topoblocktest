@@ -60,8 +60,11 @@ def iperf2(**in_settings):
     echo -n "Running iperf2 over {protocol} (with {parallelism} clients)... "
     sleep 1
     (LC_ALL=C iostat -c {iostat_interval} {iostat_count} | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' >> {result_file}.cpu) & IOSTAT_PID=$! # CPU monitoring
-    iperf2out="$(ip netns exec {ns2} timeout --signal=KILL {kill_after} iperf --time {duration} {__udp_param}{__packet_size_param} --client $server_addr --reportstyle C --parallel {parallelism})"
-    if [ "$iperf2out" ]; then
+    iperf2out="$(ip netns exec {ns2} timeout --signal=KILL {kill_after} iperf --time {duration} {__udp_param}{__packet_size_param} --client $server_addr --reportstyle C --parallel {parallelism} 2>>{result_file}.iperf2_err)"
+    expected_lines={parallelism}
+    [ {parallelism} -gt 1 ] && expected_lines=$((expected_lines + 1))
+    output_lines=$(echo "$iperf2out" | wc -l)
+    if [ $expected_lines == $output_lines ]; then
         csvline="$(echo $iperf2out | tail -n1)"
         echo measured $(numfmt --to=iec --suffix=b/s ${{csvline##*,}})
         echo 'begin' >> {result_file}.iperf2
