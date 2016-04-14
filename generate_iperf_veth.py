@@ -13,8 +13,4 @@ if __name__ == '__main__':
         'disable_offloading': (False, True),
     }
 
-    def skip_fn(settings):
-        if (settings['packet_size'] != 'default' or settings['disable_offloading']) and settings['parallelism'] != 4:
-            return True
-
-    test_master.generate_combinations(constants, variables, skip_fn)
+    test_master.generate_combinations(constants, variables)
