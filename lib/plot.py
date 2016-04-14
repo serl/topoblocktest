@@ -53,7 +53,10 @@ def throughput_cpu(columns, rows_grouped, x_title='', style_fn=None):
     if len(rows_grouped) == 1:
         axes = (axes,)
     togglable_legend = TogglableLegend(fig)
-    for row_id, (ax_throughput, ax_cpu) in enumerate(axes):
+    row_id = 0
+    for (ax_throughput, ax_cpu) in axes:
+        while row_id not in rows_grouped:
+            row_id += 1
         lines = []
         for label, rowdetails in rows_grouped[row_id].items():
             row = rowdetails['row']
@@ -64,21 +67,16 @@ def throughput_cpu(columns, rows_grouped, x_title='', style_fn=None):
             cpu_values = []
             cpu_error = []
             for i, col in enumerate(columns):
-                try:
-                    r = row[i]
-                    if r is None:
-                        # warnings.warn("Missing value on serie '{}' for x value {}".format(label, col), RuntimeWarning)
-                        continue
-                    row_element = r
-                    throughput_values.append(r['iperf_result']['throughput'][0])
-                    throughput_error.append(r['iperf_result']['throughput'][1])
-                    cpu_values.append(100 - r['iostat_cpu']['idle'][0])  # 100 - idle
-                    cpu_error.append(r['iostat_cpu']['idle'][1])
-                    x_values.append(col)
-                except KeyError as e:
-                    raise e
-                    pass
-            # kwargs = styles[row_id][label] if label in styles[row_id] else {}
+                r = row[i]
+                if r is None:
+                    # warnings.warn("Missing value on serie '{}' for x value {}".format(label, col), RuntimeWarning)
+                    continue
+                row_element = r
+                throughput_values.append(r['iperf_result']['throughput'][0])
+                throughput_error.append(r['iperf_result']['throughput'][1])
+                cpu_values.append(100 - r['iostat_cpu']['idle'][0])  # 100 - idle
+                cpu_error.append(r['iostat_cpu']['idle'][1])
+                x_values.append(col)
             basestyle = {'linestyle': '-', 'markersize': 7}
             kwargs = basestyle.copy()
             kwargs.update(style_fn(row_element, row_id))
@@ -99,6 +97,7 @@ def throughput_cpu(columns, rows_grouped, x_title='', style_fn=None):
         legend = ax_cpu.legend(bbox_to_anchor=(1, 1), loc=2, fontsize='x-small')
         for legline, origlines in zip(legend.get_texts(), lines):
             togglable_legend.add(legline, origlines)
+        row_id += 1
 
     plt.subplots_adjust(left=0.05, right=0.82, top=0.95, bottom=0.1)
     plt.show()
