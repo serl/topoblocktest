@@ -6,3 +6,5 @@ __pycache__/
 /.vagrant
 /.vagrantpyenv
 /cache
+/backup/*
+!/backup/.gitkeep
