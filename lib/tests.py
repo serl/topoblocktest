@@ -65,8 +65,7 @@ def iperf2(**in_settings):
     [ {parallelism} -gt 1 ] && expected_lines=$((expected_lines + 1))
     output_lines=$(echo "$iperf2out" | wc -l)
     if [ $expected_lines == $output_lines ]; then
-        csvline="$(echo $iperf2out | tail -n1)"
-        echo measured $(numfmt --to=iec --suffix=b/s ${{csvline##*,}})
+        echo measured $(numfmt --to=iec --suffix=b/s ${{iperf2out##*,}})
         echo 'begin' >> {result_file}.iperf2
         echo "$iperf2out" >> {result_file}.iperf2
         {counter_increment}
