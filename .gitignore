@@ -5,6 +5,7 @@ __pycache__/
 !/results/.gitkeep
 /.vagrant
 /.vagrantpyenv
-/cache
+/cache/*
+!/cache/.gitkeep
 /backup/*
 !/backup/.gitkeep
