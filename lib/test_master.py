@@ -56,7 +56,7 @@ def generate(**settings):
     return settings_hash, script
 
 
-def run_all(target_repetitions=0):
+def run_all(target_repetitions=0, dry_run=False):
     to_run = []  # each script will appear N times, so to reach the target_repetitions
     p = pathlib.Path(results_dir)
     for script_file in p.glob('*.sh'):
@@ -64,15 +64,16 @@ def run_all(target_repetitions=0):
         try:
             with script_file.parent.joinpath(script_file.stem + '.count').open() as count_fh:
                 count = int(count_fh.read())
-        except FileNotFoundError:
+        except (FileNotFoundError, ValueError):
             pass
         to_run.extend([script_file] * (target_repetitions - count))
-    random.shuffle(to_run)  # the order becomes unpredictable, because I think it's a good idea
-    for current, script_file in enumerate(to_run, start=1):
-        with script_file.open() as script_fh:
-            script = CommandBlock() + script_fh.read()
-            print("Running {} ({}/{})...".format(script_file.name, current, len(to_run)))
-            script.run()
+    if not dry_run:
+        random.shuffle(to_run)  # the order becomes unpredictable, because I think it's a good idea
+        for current, script_file in enumerate(to_run, start=1):
+            with script_file.open() as script_fh:
+                script = CommandBlock() + script_fh.read()
+                print("Running {} ({}/{})...".format(script_file.name, current, len(to_run)))
+                script.run()
     return len(to_run)
 
 

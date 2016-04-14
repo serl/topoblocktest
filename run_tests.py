@@ -4,8 +4,13 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('target_repetitions', type=int, default=1, help='ensure all tests ran at least TARGET_REPETITIONS times')
+    parser.add_argument('--dry-run', action='store_true', help='do not actually run the tests, only count them')
     args = parser.parse_args()
-    if run_all(args.target_repetitions) > 0:
-        print("Beware, in case of errors, the tests are not automatically relaunched. So rerun this command to be sure ;)")
+    run_tests = run_all(args.target_repetitions, args.dry_run)
+    if run_tests > 0:
+        if args.dry_run:
+            print("{} tests to be run.".format(run_tests))
+        else:
+            print("Beware, in case of errors, the tests are not automatically relaunched. So rerun this command to be sure ;)")
     else:
         print("All tests ran already at least {} times.".format(args.target_repetitions))
