@@ -76,7 +76,7 @@ def run_all(target_repetitions=0):
     return len(to_run)
 
 
-def get_results_db(clear_cache=False):
+def get_results_db(clear_cache=False, skip=[]):
     cache_file = 'cache/results.pdl'
     db = Base(cache_file)
 
@@ -89,6 +89,8 @@ def get_results_db(clear_cache=False):
             with config_file.open() as config_fh:
                 settings_hash = config_file.stem
                 row = json.loads(config_fh.read())
+            if settings_hash in skip:
+                continue
             row['hash'] = settings_hash
             row['iostat_cpu'] = analyze.iostat_cpu(config_file.parent, settings_hash)
             row['iperf_result'] = getattr(analyze, row['iperf_name'])(config_file.parent, settings_hash, row)

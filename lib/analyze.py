@@ -8,6 +8,13 @@ from .math_utils import mean_confidence, jain_fairness
 from collections import OrderedDict
 
 
+class AnalysisException(Exception):
+
+    def __init__(self, message, test_hash):
+        super(AnalysisException, self).__init__(message)
+        self.test_hash = test_hash
+
+
 def checked_mean_confidence(throughputs, settings_hash):
     throughput_meanconf = mean_confidence(throughputs)
     if 2 * throughput_meanconf[1] > throughput_meanconf[0]:
@@ -46,20 +53,20 @@ def iperf2(directory, settings_hash, settings):
     for test in tests:
         if settings['parallelism'] == 1:
             if len(test) != 1:
-                raise ValueError('For test {}, the result sounds strange (parallelism 1, but {} lines in the csv).'.format(settings_hash, len(test)))
+                raise AnalysisException('For test {}, the result sounds strange (parallelism 1, but {} lines in the csv).'.format(settings_hash, len(test)), settings_hash)
             throughputs.append(float(test[0][8]))
             fairnesses.append(1)
         else:
             if len(test) != settings['parallelism'] + 1:
-                raise ValueError('For test {}, the result sounds strange (parallelism {}, but {} lines in the csv).'.format(settings_hash, settings['parallelism'], len(test)))
+                raise AnalysisException('For test {}, the result sounds strange (parallelism {}, but {} lines in the csv).'.format(settings_hash, settings['parallelism'], len(test)), settings_hash)
             bytes_list = [int(x[7]) for x in test[:-1]]
             for n_bytes in [b for b in bytes_list if b < 0]:
-                raise ValueError('For test {}, the result sounds strange (we have one transfer of {} packets; that is a negative number).'.format(settings_hash, n_bytes))
+                raise AnalysisException('For test {}, the result sounds strange (we have one transfer of {} packets; that is a negative number).'.format(settings_hash, n_bytes), settings_hash)
             bytes_sum = sum(bytes_list)
             bytes_total = int(test[-1][7])
             iperf_throughput = float(test[-1][8])
             if bytes_sum != bytes_total:
-                raise ValueError('For test {}, the result sounds strange (sum of transfers {}, but master result {}).'.format(settings_hash, bytes_sum, bytes_total))
+                raise AnalysisException('For test {}, the result sounds strange (sum of transfers {}, but master result {}).'.format(settings_hash, bytes_sum, bytes_total), settings_hash)
 
             durations = set([x[6] for x in test])
             if len(durations) > 1:
@@ -106,10 +113,10 @@ def iperf3(directory, settings_hash, settings):
         throughputs.append(8.0 * json_end['sum_received']['bytes'] / json_end['sum_received']['seconds'])
         cpu_utilizations.append((json_end['cpu_utilization_percent']['host_total'], json_end['cpu_utilization_percent']['remote_total']))
         bytes_streams = [stream['receiver']['bytes'] for stream in json_end['streams']]
-        if len(bytes_streams) != settings['parallelism'] :
-            raise ValueError('For test {}, the result sounds strange (parallelism {}, but {} transfers reported).'.format(settings_hash, settings['parallelism'], len(bytes_streams)))
+        if len(bytes_streams) != settings['parallelism']:
+            raise AnalysisException('For test {}, the result sounds strange (parallelism {}, but {} transfers reported).'.format(settings_hash, settings['parallelism'], len(bytes_streams)), settings_hash)
         for n_bytes in [b for b in bytes_streams if b < 0]:
-            raise ValueError('For test {}, the result sounds strange (we have one transfer of {} packets; that is a negative number).'.format(settings_hash, n_bytes))
+            raise AnalysisException('For test {}, the result sounds strange (we have one transfer of {} packets; that is a negative number).'.format(settings_hash, n_bytes), settings_hash)
         fairnesses.append(jain_fairness(bytes_streams))
     return {
         'throughput': checked_mean_confidence(throughputs, settings_hash),
@@ -124,7 +131,7 @@ def iperf3m(directory, settings_hash, settings):
         with directory.joinpath('{}.iperf3.{}'.format(settings_hash, i + 1)).open() as file_handler:
             json_dicts[i] = read_jsons(file_handler)
             if i > 0 and len(json_dicts[i - 1]) != len(json_dicts[i]):
-                raise ValueError('Something went wrong on {}: I expected to have the same number of tests on all the threads.'.format(settings_hash))
+                raise AnalysisException('Something went wrong on {}: I expected to have the same number of tests on all the threads.'.format(settings_hash), settings_hash)
     tests_count = len(json_dicts[i])
     throughputs = []
     fairnesses = []
@@ -135,7 +142,7 @@ def iperf3m(directory, settings_hash, settings):
             json_end = json_dicts[thread_id][test_num]['end']
             n_bytes = json_end['sum_received']['bytes']
             if n_bytes < 0:
-                raise ValueError('For test {}, the result sounds strange (we have one transfer of {} packets; that is a negative number).'.format(settings_hash, n_bytes))
+                raise AnalysisException('For test {}, the result sounds strange (we have one transfer of {} packets; that is a negative number).'.format(settings_hash, n_bytes), settings_hash)
             throughput += 8.0 * n_bytes / json_end['sum_received']['seconds']
             bytes_streams.append(n_bytes)
         throughputs.append(throughput)
