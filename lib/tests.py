@@ -59,21 +59,23 @@ def iperf2(**in_settings):
     server_addr=$(ip netns exec {ns1} ip addr show scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
     echo -n "Running iperf2 over {protocol} (with {parallelism} clients)... "
     sleep 1
-    (LC_ALL=C iostat -c {iostat_interval} {iostat_count} | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' >> {result_file}.cpu) & IOSTAT_PID=$! # CPU monitoring
+    (LC_ALL=C iostat -c {iostat_interval} {iostat_count} | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' > {result_file}.cpu.temp) & IOSTAT_PID=$! # CPU monitoring
     iperf2out="$(ip netns exec {ns2} timeout --signal=KILL {kill_after} iperf --time {duration} {__udp_param}{__packet_size_param} --client $server_addr --reportstyle C --parallel {parallelism})"
     expected_lines={parallelism}
+    wait $IOSTAT_PID
     [ {parallelism} -gt 1 ] && expected_lines=$((expected_lines + 1))
     output_lines=$(echo "$iperf2out" | wc -l)
     if [ $expected_lines == $output_lines ]; then
         echo measured $(numfmt --to=iec --suffix=b/s ${{iperf2out##*,}})
         echo 'begin' >> {result_file}.iperf2
         echo "$iperf2out" >> {result_file}.iperf2
+        cat {result_file}.cpu.temp >> {result_file}.cpu
         {counter_increment}
         sleep 5 #let the load decrease
     else
         echo error
     fi
-    wait $IOSTAT_PID
+    rm {result_file}.cpu.temp
     kill $IPERF_PID $TCPDUMP_PID
     wait
     sleep 1
@@ -134,16 +136,19 @@ def iperf3(**in_settings):
     server_addr=$(ip netns exec {ns1} ip addr show scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
     echo -n "Running iperf3 over {protocol} (with {parallelism} clients)... "
     sleep 1
-    (LC_ALL=C iostat -c {iostat_interval} {iostat_count} | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' >> {result_file}.cpu) & IOSTAT_PID=$! # CPU monitoring
+    (LC_ALL=C iostat -c {iostat_interval} {iostat_count} | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' > {result_file}.cpu.temp) & IOSTAT_PID=$! # CPU monitoring
     ip netns exec {ns2} timeout --signal=KILL {kill_after} iperf3 --time {duration} --interval 0 {__affinity_param}{__zerocopy_param}{__udp_param}{__packet_size_param} --parallel {parallelism} --client $server_addr --json >> {result_file}.iperf3
-    if [ $? == 0 ]; then
+    iperf_exitcode=$?
+    wait $IOSTAT_PID
+    if [ $iperf_exitcode == 0 ]; then
         echo success
+        cat {result_file}.cpu.temp >> {result_file}.cpu
         {counter_increment}
         sleep 5 #let the load decrease
     else
         echo error
     fi
-    wait $IOSTAT_PID
+    rm {result_file}.cpu.temp
     kill $IPERF_PID $TCPDUMP_PID
     wait
     sleep 1

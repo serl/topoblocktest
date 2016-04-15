@@ -1,4 +1,4 @@
-from lib.test_master import get_results_db
+import lib.test_master
 from lib.analyze import AnalysisException
 
 
@@ -9,13 +9,24 @@ def count_exceptions():
     while exceptions_found:
         try:
             exceptions_found = False
-            db = get_results_db(True, skip=skip)
+            db = lib.test_master.get_results_db(True, skip=skip)
         except AnalysisException as e:
             exceptions_found = True
             print('Exception: {}'.format(e))
             skip.append(e.test_hash)
             count += 1
-    print("{} total exceptions.".format(count))
+    return skip
 
 if __name__ == '__main__':
-    count_exceptions()
+    import subprocess
+    import argparse
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--run-editor', help='run the specified editor for each Exception')
+    args = parser.parse_args()
+
+    test_hashes = count_exceptions()
+    print("{} total exceptions.".format(len(test_hashes)))
+    if args.run_editor is not None:
+        for test_hash in test_hashes:
+            proc = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, universal_newlines=True)
+            proc.communicate('{} {}{}.*'.format(args.run_editor, lib.test_master.results_dir, test_hash))
