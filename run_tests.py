@@ -10,7 +10,5 @@ if __name__ == '__main__':
     if run_tests > 0:
         if args.dry_run:
             print("{} tests to be run.".format(run_tests))
-        else:
-            print("Beware, in case of errors, the tests are not automatically relaunched. So rerun this command to be sure ;)")
     else:
         print("All tests ran already at least {} times.".format(args.target_repetitions))
