@@ -26,16 +26,20 @@ def iostat_cpu(directory, settings_hash):
     with directory.joinpath(settings_hash + '.cpu').open() as file_handler:
         keys = ('user', 'nice', 'system', 'iowait', 'steal', 'idle')
         values_list = [[], [], [], [], [], []]
+        len_values_check = 0
         skip_line = False
         for line in file_handler:
             if skip_line or line.startswith('avg-cpu:'):
                 skip_line = not skip_line  # if there's avg-cpu, we skip two lines
+                len_values_check += 0.5 # as we do it twice
                 continue
             row = map(float, line.split())
             for i, v in enumerate(row):
                 values_list[i].append(v)
         cpu = {keys[i]: mean_confidence(values) for i, values in enumerate(values_list)}
-        return cpu
+        if int(len_values_check) != len_values_check:
+            raise AnalysisException('For test {}, the iostat output is buggy ({} tests).'.format(settings_hash, len_values_check), settings_hash)
+        return cpu, int(len_values_check)
 
 
 def iperf2(directory, settings_hash, settings):
@@ -80,7 +84,7 @@ def iperf2(directory, settings_hash, settings):
     return {
         'throughput': checked_mean_confidence(throughputs, settings_hash),
         'fairness': mean_confidence(fairnesses),
-    }
+    }, len(tests)
 
 
 def read_jsons(file_handler):
@@ -122,7 +126,7 @@ def iperf3(directory, settings_hash, settings):
         'throughput': checked_mean_confidence(throughputs, settings_hash),
         'cpu': {'host': mean_confidence([x[0] for x in cpu_utilizations]), 'remote': mean_confidence([x[1] for x in cpu_utilizations])},
         'fairness': mean_confidence(fairnesses),
-    }
+    }, len(json_dicts)
 
 
 def iperf3m(directory, settings_hash, settings):
@@ -151,7 +155,7 @@ def iperf3m(directory, settings_hash, settings):
         'throughput': checked_mean_confidence(throughputs, settings_hash),
         #'cpu': not clear: how should I interpret the results from iperf3?
         'fairness': mean_confidence(fairnesses),
-    }
+    }, tests_count
 
 
 def get_analysis_table(db_query, x_axis, row_info_fn, grouping_fn=None):

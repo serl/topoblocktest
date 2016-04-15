@@ -93,8 +93,10 @@ def get_results_db(clear_cache=False, skip=[]):
             if settings_hash in skip:
                 continue
             row['hash'] = settings_hash
-            row['iostat_cpu'] = analyze.iostat_cpu(config_file.parent, settings_hash)
-            row['iperf_result'] = getattr(analyze, row['iperf_name'])(config_file.parent, settings_hash, row)
+            row['iostat_cpu'], len_cpu_values = analyze.iostat_cpu(config_file.parent, settings_hash)
+            row['iperf_result'], len_iperf_values = getattr(analyze, row['iperf_name'])(config_file.parent, settings_hash, row)
+            if len_cpu_values != len_iperf_values:
+                raise analyze.AnalysisException('For test {}, mismatch in cardinality of tests between iostat ({}) and iperf ({})'.format(settings_hash, len_cpu_values, len_iperf_values), settings_hash)
             columns = columns | set(row.keys())
             rows.append(row)
 
