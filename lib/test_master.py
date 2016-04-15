@@ -24,6 +24,8 @@ def generate_combinations(constants, variables, skip_fn=lambda x: False):
         settings = constants.copy()
         for i, value in enumerate(combi):
             settings[variables_keys[i]] = value
+        if len(settings) is 0:
+            continue
         if not skip_fn(settings):
             generate(**settings)
             n += 1
