@@ -73,3 +73,10 @@ class Collection:
     def plot(self):
         cols, rows, rows_grouped = self.__analyze()
         plot.throughput_cpu(cols, rows_grouped, self.x_title, self.plot_style_fn)
+
+    def parse_shell_arguments(self):
+        import argparse
+        parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument('action', choices=('generate', 'csv', 'plot'), help='action to take')
+        args = parser.parse_args()
+        getattr(self, args.action)()

@@ -61,9 +61,4 @@ class iperf_veth_tests(collection.Collection):
 
 
 if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('action', choices=('generate', 'csv', 'plot'), help='action to take')
-    args = parser.parse_args()
-    coll = iperf_veth_tests()
-    getattr(coll, args.action)()
+    iperf_veth_tests().parse_shell_arguments()
