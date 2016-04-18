@@ -103,6 +103,10 @@ def get_results_db(clear_cache=False, skip=[]):
             row['iperf_result'], len_iperf_values = getattr(analyze, row['iperf_name'])(config_file.parent, settings_hash, row)
             if len_cpu_values != len_iperf_values:
                 raise analyze.AnalysisException('For test {}, mismatch in cardinality of tests between iostat ({}) and iperf ({})'.format(settings_hash, len_cpu_values, len_iperf_values), settings_hash)
+            if len_iperf_values > 0:
+                min_fairness = row['iperf_result']['fairness'][0] - row['iperf_result']['fairness'][1]
+                if min_fairness < (1 - 1 / (2 * row['parallelism'])):
+                    warnings.warn('For test {}, fairness has a critical value: {}.'.format(settings_hash, row['iperf_result']['fairness']), RuntimeWarning)
             columns = columns | set(row.keys())
             rows.append(row)
 
