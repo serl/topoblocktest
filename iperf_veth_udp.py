@@ -1,15 +1,15 @@
 import lib.collection as collection
 
 
-class iperf_veth_tests_tcp(collection.Collection):
+class iperf_veth_tests_udp(collection.Collection):
     constants = {
-        'protocol': 'tcp',
+        'protocol': 'udp',
         'topology': 'direct_veth',
     }
     variables = {
         'iperf_name': ('iperf2', 'iperf3', 'iperf3m'),
         'parallelism': (1, 2, 3, 4, 8, 12, 16),
-        'packet_size': ('default', 536),
+        'packet_size': (65507, 1458, 1),
         'disable_offloading': (False, True),
         'zerocopy': (False, True),
         'affinity': (False, True),
@@ -61,4 +61,4 @@ class iperf_veth_tests_tcp(collection.Collection):
 
 
 if __name__ == '__main__':
-    iperf_veth_tests_tcp().parse_shell_arguments()
+    iperf_veth_tests_udp().parse_shell_arguments()
