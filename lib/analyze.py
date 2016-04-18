@@ -23,35 +23,43 @@ def checked_mean_confidence(throughputs, settings_hash):
 
 
 def iostat_cpu(directory, settings_hash):
-    with directory.joinpath(settings_hash + '.cpu').open() as file_handler:
-        keys = ('user', 'nice', 'system', 'iowait', 'steal', 'idle')
-        values_list = [[], [], [], [], [], []]
-        len_values_check = 0
-        skip_line = False
-        for line in file_handler:
-            if skip_line or line.startswith('avg-cpu:'):
-                skip_line = not skip_line  # if there's avg-cpu, we skip two lines
-                len_values_check += 0.5 # as we do it twice
-                continue
-            row = map(float, line.split())
-            for i, v in enumerate(row):
-                values_list[i].append(v)
-        cpu = {keys[i]: mean_confidence(values) for i, values in enumerate(values_list)}
-        if int(len_values_check) != len_values_check:
-            raise AnalysisException('For test {}, the iostat output is buggy ({} tests).'.format(settings_hash, len_values_check), settings_hash)
-        return cpu, int(len_values_check)
+    try:
+        with directory.joinpath(settings_hash + '.cpu').open() as file_handler:
+            keys = ('user', 'nice', 'system', 'iowait', 'steal', 'idle')
+            values_list = [[], [], [], [], [], []]
+            len_values_check = 0
+            skip_line = False
+            for line in file_handler:
+                if skip_line or line.startswith('avg-cpu:'):
+                    skip_line = not skip_line  # if there's avg-cpu, we skip two lines
+                    len_values_check += 0.5  # as we do it twice
+                    continue
+                row = map(float, line.split())
+                for i, v in enumerate(row):
+                    values_list[i].append(v)
+    except FileNotFoundError:
+        return {}, 0
+
+    cpu = {keys[i]: mean_confidence(values) for i, values in enumerate(values_list)}
+    if int(len_values_check) != len_values_check:
+        raise AnalysisException('For test {}, the iostat output is buggy ({} tests).'.format(settings_hash, len_values_check), settings_hash)
+    return cpu, int(len_values_check)
 
 
 def iperf2(directory, settings_hash, settings):
-    with directory.joinpath(settings_hash + '.iperf2').open() as file_handler:
-        tests = []
-        cur_test = None  # it is instantiated and added to `tests` each time the keywork `begin` is read from the file
-        for line in file_handler:
-            if line.rstrip() == 'begin':
-                cur_test = []
-                tests.append(cur_test)
-            else:
-                cur_test.append(line.rstrip().split(','))
+    try:
+        with directory.joinpath(settings_hash + '.iperf2').open() as file_handler:
+            tests = []
+            cur_test = None  # it is instantiated and added to `tests` each time the keywork `begin` is read from the file
+            for line in file_handler:
+                if line.rstrip() == 'begin':
+                    cur_test = []
+                    tests.append(cur_test)
+                else:
+                    cur_test.append(line.rstrip().split(','))
+    except FileNotFoundError:
+        return {}, 0
+
     throughputs = []
     fairnesses = []
     for test in tests:
@@ -107,8 +115,12 @@ def read_jsons(file_handler):
 
 
 def iperf3(directory, settings_hash, settings):
-    with directory.joinpath(settings_hash + '.iperf3').open() as file_handler:
-        json_dicts = read_jsons(file_handler)
+    try:
+        with directory.joinpath(settings_hash + '.iperf3').open() as file_handler:
+            json_dicts = read_jsons(file_handler)
+    except FileNotFoundError:
+        return {}, 0
+
     throughputs = []
     cpu_utilizations = []
     fairnesses = []
@@ -132,10 +144,16 @@ def iperf3(directory, settings_hash, settings):
 def iperf3m(directory, settings_hash, settings):
     json_dicts = [None] * settings['parallelism']
     for i in range(settings['parallelism']):
-        with directory.joinpath('{}.iperf3.{}'.format(settings_hash, i + 1)).open() as file_handler:
-            json_dicts[i] = read_jsons(file_handler)
-            if i > 0 and len(json_dicts[i - 1]) != len(json_dicts[i]):
-                raise AnalysisException('Something went wrong on {}: I expected to have the same number of tests on all the threads.'.format(settings_hash), settings_hash)
+        try:
+            with directory.joinpath('{}.iperf3.{}'.format(settings_hash, i + 1)).open() as file_handler:
+                json_dicts[i] = read_jsons(file_handler)
+                if i > 0 and len(json_dicts[i - 1]) != len(json_dicts[i]):
+                    raise AnalysisException('Something went wrong on {}: I expected to have the same number of tests on all the workers.'.format(settings_hash), settings_hash)
+        except FileNotFoundError:
+            if i == 0:
+                return {}, 0
+            else:
+                raise AnalysisException('Something went wrong on {}: The number of workers ({}) is different from the requested parallelism ({}).'.format(settings_hash, i + 1, settings['parallelism']), settings_hash)
     tests_count = len(json_dicts[i])
     throughputs = []
     fairnesses = []
