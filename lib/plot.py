@@ -10,6 +10,16 @@ def import_matplotlib(interactive=True):
     return plt
 
 
+def format_list(values, divisor=1000):
+    powers = ['', 'K', 'M', 'G', 'T', 'P']
+    div_values = values.copy()
+    power = powers[0]
+    while max(div_values) >= divisor:
+        div_values = [x / divisor for x in div_values]
+        power = powers[powers.index(power) + 1]
+    return div_values, power
+
+
 class TogglableLegend:
 
     def __init__(self, fig):
@@ -87,7 +97,9 @@ def throughput_cpu(columns, rows_grouped, x_title='', style_fn=None):
             series_lines.extend((line,) + two + three)
             lines.append(series_lines)
         ax_throughput.set_xlabel(x_title)
-        ax_throughput.set_ylabel('throughput (b/s)')
+        formatted_locs, power = format_list(ax_throughput.get_yticks())
+        ax_throughput.set_yticklabels(map("{0:.0f}".format, formatted_locs))
+        ax_throughput.set_ylabel('throughput ({}b/s)'.format(power))
         ax_throughput.grid(True)
         ax_cpu.set_xlabel(x_title)
         ax_cpu.set_ylabel('cpu utilization (%)')
