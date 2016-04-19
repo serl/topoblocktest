@@ -61,8 +61,9 @@ def iperf2(**in_settings):
     sleep 1
     (LC_ALL=C iostat -c {iostat_interval} {iostat_count} | awk 'FNR==3 {{ header = $0; print }} FNR!=1 && $0 != header && $0' > {result_file}.cpu.temp) & IOSTAT_PID=$! # CPU monitoring
     iperf2out="$(ip netns exec {ns2} timeout --signal=KILL {kill_after} iperf --time {duration} {__udp_param}{__packet_size_param} --client $server_addr --reportstyle C --parallel {parallelism})"
-    expected_lines={parallelism}
     wait $IOSTAT_PID
+    expected_lines={parallelism}
+    [ '{protocol}' == 'udp' ] && expected_lines=$((expected_lines * 2))
     [ {parallelism} -gt 1 ] && expected_lines=$((expected_lines + 1))
     output_lines=$(echo "$iperf2out" | wc -l)
     if [ $expected_lines == $output_lines ]; then
