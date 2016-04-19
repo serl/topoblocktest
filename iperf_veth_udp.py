@@ -48,10 +48,12 @@ class iperf_veth_tests_udp(collection.Collection):
         if r['affinity'] and r['zerocopy']:
             color = 'green'
 
-        if r['packet_size'] == 'default':
+        if r['packet_size'] == 65507:
             marker = 's'
-        elif r['packet_size'] == 536:
+        elif r['packet_size'] == 1458:
             marker = '^'
+        elif r['packet_size'] == 1:
+            marker = 'o'
 
         return {
             'linestyle': '--' if r['disable_offloading'] else '-',

@@ -12,4 +12,6 @@ def mean_confidence(data, confidence=.95):
 
 
 def jain_fairness(data):
+    if len(data) == 0:
+        return 1
     return sum(data)**2 / (len(data) * sum([x**2 for x in data]))

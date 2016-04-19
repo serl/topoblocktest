@@ -63,7 +63,7 @@ def iperf2(**in_settings):
     iperf2out="$(ip netns exec {ns2} timeout --signal=KILL {kill_after} iperf --time {duration} {__udp_param}{__packet_size_param} --client $server_addr --reportstyle C --parallel {parallelism})"
     wait $IOSTAT_PID
     expected_lines={parallelism}
-    [ '{protocol}' == 'udp' ] && expected_lines=$((expected_lines * 2))
+    [ '{protocol}' == 'udp' ] && [ '{packet_size}' -ge 36 ] && expected_lines=$((expected_lines * 2))
     [ {parallelism} -gt 1 ] && expected_lines=$((expected_lines + 1))
     output_lines=$(echo "$iperf2out" | wc -l)
     if [ $expected_lines == $output_lines ]; then

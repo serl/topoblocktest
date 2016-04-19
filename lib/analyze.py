@@ -16,6 +16,8 @@ class AnalysisException(Exception):
 
 
 def checked_mean_confidence(throughputs, settings_hash):
+    if len(throughputs) == 0:
+        return None
     throughput_meanconf = mean_confidence(throughputs)
     if 2 * throughput_meanconf[1] > throughput_meanconf[0]:
         warnings.warn('For test {}, the conf interval for throughput is huge. Raw values: {}'.format(settings_hash, throughputs), RuntimeWarning)
@@ -47,6 +49,7 @@ def iostat_cpu(directory, settings_hash):
 
 
 def iperf2(directory, settings_hash, settings):
+    csv_fields = ['timestamp', 'clientIp', 'clientPort', 'serverIp', 'serverPort', 'transferId', 'timing', 'bytes', 'throughput', 'jitter', 'errors', 'datagrams', 'errorRatio', 'outOfOrder']
     try:
         with directory.joinpath(settings_hash + '.iperf2').open() as file_handler:
             tests = []
@@ -56,41 +59,80 @@ def iperf2(directory, settings_hash, settings):
                     cur_test = []
                     tests.append(cur_test)
                 else:
-                    cur_test.append(line.rstrip().split(','))
+                    linedict = {}
+                    for i, val in enumerate(line.rstrip().split(',')):
+                        linedict[csv_fields[i]] = val
+                    linedict['startTime'], linedict['endTime'] = map(float, linedict['timing'].split('-'))
+                    linedict['duration'] = linedict['endTime'] - linedict['startTime']
+                    cur_test.append(linedict)
     except FileNotFoundError:
         return None, 0
 
     throughputs = []
+    packetputs = []
     fairnesses = []
     for test in tests:
+        expected_lines = settings['parallelism']
+        mode = 'tcp'  # actually it is used even on udp with smaller packets, see the next line ;)
+        if settings['protocol'] == 'udp' and settings['packet_size'] >= 36:
+            expected_lines *= 2
+            mode = 'udp'
+        if settings['parallelism'] > 1:
+            expected_lines += 1
+        if len(test) != expected_lines:
+            raise AnalysisException('For test {}, the result sounds strange (parallelism {}, but {} lines in the csv, while {} expected).'.format(settings_hash, settings['parallelism'], len(test), expected_lines), settings_hash)
         if settings['parallelism'] == 1:
-            if len(test) != 1:
-                raise AnalysisException('For test {}, the result sounds strange (parallelism 1, but {} lines in the csv).'.format(settings_hash, len(test)), settings_hash)
-            throughputs.append(float(test[0][8]))
+            if len(test) == 2:  # udp and not legacy mode (packet_size >= 36)
+                throughputs.append(float(test[1]['throughput']))
+                packetputs.append(float(test[1]['datagrams']) / test[1]['duration'])
+            else:
+                throughputs.append(float(test[0]['throughput']))
             fairnesses.append(1)
         else:
-            if len(test) != settings['parallelism'] + 1:
-                raise AnalysisException('For test {}, the result sounds strange (parallelism {}, but {} lines in the csv).'.format(settings_hash, settings['parallelism'], len(test)), settings_hash)
-            bytes_list = [int(x[7]) for x in test[:-1]]
+            summary_lines = [l for l in test if l['transferId'] == '-1']
+            if len(summary_lines) != 1:
+                raise AnalysisException('For test {}, the result sounds strange (we have {} summary lines, instead of 1).'.format(settings_hash, len(master_lines)), settings_hash)
+            summary_line = summary_lines[0]
+
+            flow_lines = [l for l in test if l != summary_line]
+            if mode == 'udp':
+                flow_lines = [l for l in flow_lines if 'datagrams' in l]  # an udp line has the 'datagrams field
+
+            bytes_list = [int(x['bytes']) for x in flow_lines]
             for n_bytes in [b for b in bytes_list if b < 0]:
                 raise AnalysisException('For test {}, the result sounds strange (we have one transfer of {} packets; that is a negative number).'.format(settings_hash, n_bytes), settings_hash)
-            bytes_sum = sum(bytes_list)
-            bytes_total = int(test[-1][7])
-            iperf_throughput = float(test[-1][8])
-            if bytes_sum != bytes_total:
-                raise AnalysisException('For test {}, the result sounds strange (sum of transfers {}, but master result {}).'.format(settings_hash, bytes_sum, bytes_total), settings_hash)
 
-            durations = set([x[6] for x in test])
-            if len(durations) > 1:
-                warnings.warn('For test {}, the transfers have different durations: {}.'.format(settings_hash, durations), RuntimeWarning)
-            # as this previous warning actually pops out, maybe it's better to stick on iperf output for throughput and not calculate it by myself, as in the next three lines
-            # t_begin, t_end = map(float, test[-1][6].split('-'))
-            # duration = t_end - t_begin
-            # throughputs.append(8.0 * bytes_total / duration)
-            throughputs.append(iperf_throughput)
+            if mode == 'tcp':
+                bytes_sum = sum(bytes_list)
+                bytes_total = int(summary_line['bytes'])
+                iperf_throughput = float(summary_line['throughput'])
+                if bytes_sum != bytes_total:
+                    raise AnalysisException('For test {}, the result sounds strange (sum of transfers {}, but master result {}).'.format(settings_hash, bytes_sum, bytes_total), settings_hash)
+
+                durations = set([x['timing'] for x in test])
+                if len(durations) > 1:
+                    warnings.warn('For test {}, the transfers have different durations: {}.'.format(settings_hash, durations), RuntimeWarning)
+                # as this previous warning actually pops out sometimes, maybe it's better to stick on iperf output for throughput and not calculate it by myself, as it was in the next line
+                # throughputs.append(8.0 * bytes_total / summary_line['duration'])
+                throughputs.append(iperf_throughput)
+
+            else:  # mode == 'udp'
+                throughput = 0
+                packetput = 0
+                for line in flow_lines:
+                    throughput += 8.0 * float(line['bytes']) / line['duration']
+                    try:
+                        packetput += float(line['datagrams']) / line['duration']
+                    except KeyError:
+                        print(settings_hash)
+                        raise
+                throughputs.append(throughput)
+                packetputs.append(packetput)
+
             fairnesses.append(jain_fairness(bytes_list))
     return {
         'throughput': checked_mean_confidence(throughputs, settings_hash),
+        'packetput': checked_mean_confidence(packetputs, settings_hash),
         'fairness': mean_confidence(fairnesses),
     }, len(tests)
 
@@ -121,14 +163,18 @@ def iperf3(directory, settings_hash, settings):
     except FileNotFoundError:
         return None, 0
 
+    sum_key = 'sum' if settings['protocol'] == 'udp' else 'sum_received'
     throughputs = []
+    packetputs = []
     cpu_utilizations = []
     fairnesses = []
     for json_dict in json_dicts:
         json_end = json_dict['end']
-        throughputs.append(8.0 * json_end['sum_received']['bytes'] / json_end['sum_received']['seconds'])
+        throughputs.append(8.0 * json_end[sum_key]['bytes'] / json_end[sum_key]['seconds'])
+        if settings['protocol'] == 'udp':
+            packetputs.append(json_end[sum_key]['packets'] / json_end[sum_key]['seconds'])
         cpu_utilizations.append((json_end['cpu_utilization_percent']['host_total'], json_end['cpu_utilization_percent']['remote_total']))
-        bytes_streams = [stream['receiver']['bytes'] for stream in json_end['streams']]
+        bytes_streams = [stream['udp' if settings['protocol'] == 'udp' else 'receiver']['bytes'] for stream in json_end['streams']]
         if len(bytes_streams) != settings['parallelism']:
             raise AnalysisException('For test {}, the result sounds strange (parallelism {}, but {} transfers reported).'.format(settings_hash, settings['parallelism'], len(bytes_streams)), settings_hash)
         for n_bytes in [b for b in bytes_streams if b < 0]:
@@ -136,6 +182,7 @@ def iperf3(directory, settings_hash, settings):
         fairnesses.append(jain_fairness(bytes_streams))
     return {
         'throughput': checked_mean_confidence(throughputs, settings_hash),
+        'packetput': checked_mean_confidence(packetputs, settings_hash),
         'cpu': {'host': mean_confidence([x[0] for x in cpu_utilizations]), 'remote': mean_confidence([x[1] for x in cpu_utilizations])},
         'fairness': mean_confidence(fairnesses),
     }, len(json_dicts)
@@ -155,22 +202,28 @@ def iperf3m(directory, settings_hash, settings):
             else:
                 raise AnalysisException('Something went wrong on {}: The number of workers ({}) is different from the requested parallelism ({}).'.format(settings_hash, i + 1, settings['parallelism']), settings_hash)
     tests_count = len(json_dicts[i])
+    sum_key = 'sum' if settings['protocol'] == 'udp' else 'sum_received'
     throughputs = []
+    packetputs = []
     fairnesses = []
     for test_num in range(tests_count):
         throughput = 0
+        packetput = 0
         bytes_streams = []
         for thread_id in range(settings['parallelism']):
             json_end = json_dicts[thread_id][test_num]['end']
-            n_bytes = json_end['sum_received']['bytes']
+            n_bytes = json_end[sum_key]['bytes']
             if n_bytes < 0:
                 raise AnalysisException('For test {}, the result sounds strange (we have one transfer of {} packets; that is a negative number).'.format(settings_hash, n_bytes), settings_hash)
-            throughput += 8.0 * n_bytes / json_end['sum_received']['seconds']
+            throughput += 8.0 * n_bytes / json_end[sum_key]['seconds']
+            if settings['protocol'] == 'udp':
+                packetput += json_end[sum_key]['packets'] / json_end[sum_key]['seconds']
             bytes_streams.append(n_bytes)
         throughputs.append(throughput)
         fairnesses.append(jain_fairness(bytes_streams))
     return {
         'throughput': checked_mean_confidence(throughputs, settings_hash),
+        'packetput': checked_mean_confidence(packetputs, settings_hash),
         #'cpu': not clear: how should I interpret the results from iperf3?
         'fairness': mean_confidence(fairnesses),
     }, tests_count
