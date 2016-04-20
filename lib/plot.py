@@ -129,7 +129,7 @@ def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
             row_element = None  # used for the style_fn
 
             # fill the data structures
-            x_values = []
+            x_values = [[] for i in range(len(y_axes))]
             plot_values = [[] for i in range(len(y_axes))]
             plot_errors = [[] for i in range(len(y_axes))]
             for col_index, col_name in enumerate(columns):
@@ -140,11 +140,13 @@ def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
                 row_element = r
                 for y_ax_index, y_ax in enumerate(y_axes):
                     value_error = y_ax.get_value(r)
+                    if value_error is None:
+                        continue
                     if not isinstance(value_error, tuple):
                         value_error = (value_error, 0)
                     plot_values[y_ax_index].append(value_error[0])
                     plot_errors[y_ax_index].append(value_error[1])
-                x_values.append(col_name)
+                    x_values[y_ax_index].append(col_name)
 
             # draw plot
             basestyle = {'linestyle': '-', 'markersize': 7}
@@ -153,10 +155,11 @@ def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
             series_lines = []
             for y_ax_index, mpl_ax in enumerate(axes_row):
                 y_ax = y_axes[y_ax_index]
-                line, two, three = mpl_ax.errorbar(x_values, plot_values[y_ax_index], yerr=plot_errors[y_ax_index], label=label, **kwargs)
+                line, two, three = mpl_ax.errorbar(x_values[y_ax_index], plot_values[y_ax_index], yerr=plot_errors[y_ax_index], label=label, **kwargs)
                 series_lines.extend((line,) + two + three)
                 mpl_ax.set_xlabel(x_title)
                 y_ax.format_ax(mpl_ax)
+            lines.append(series_lines)
 
         legend = mpl_ax.legend(bbox_to_anchor=(1, 1), loc=2, fontsize='x-small')
         for legline, origlines in zip(legend.get_texts(), lines):
