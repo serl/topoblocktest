@@ -89,7 +89,7 @@ class CpuAx(YAx):
     def format_ax(self, ax):
         ax.set_ylabel('cpu utilization (%)')
         ax.grid(True)
-        ax.axis([None, None, 10, 105])
+        ax.axis([None, None, 0, 102])
 
 
 class PacketputAx(YAx):
