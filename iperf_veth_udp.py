@@ -24,6 +24,10 @@ class iperf_veth_tests_udp(collection.Collection):
     y_axes = ['throughput', 'packetput', 'cpu']
     x_title = 'parallelism'
 
+    filters = {
+        'iperf3m_only': lambda r: r['iperf_name'] != 'iperf3m'
+    }
+
     def analysis_row_key_fn(self, r):
         zcpyaff_key = '{}{}'.format('z' if r['zerocopy'] else 'a', 'z' if r['affinity'] else 'a')
         return "{iperf_name: <7}-{}-{:05d}-{}".format('z' if r['disable_offloading'] else 'a', r['packet_size'] if r['packet_size'] != 'default' else 0, zcpyaff_key, **r)

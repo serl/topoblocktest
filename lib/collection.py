@@ -10,6 +10,7 @@ class Collection:
     y_axes = []  # strings or YAx subclasses (see `plot` module)
     x_title = None
     row_key_attributes = tuple()
+    filters = {}  # name => skip_fn
 
     def __init__(self):
         if not len(self.constants) or not len(self.variables):
@@ -48,6 +49,8 @@ class Collection:
             db_query = [r for r in db_query if r[key] == value]
         for key, values in self.variables.items():
             db_query = [r for r in db_query if r[key] in values]
+        if hasattr(self, 'custom_filter'):
+            db_query = [r for r in db_query if not self.custom_filter(r)]
         return analyze.get_analysis_table(db_query, self.x_axis, self.analysis_row_info_fn, self.analysis_grouping_fn)
 
     def csv(self):
@@ -79,5 +82,9 @@ class Collection:
         import argparse
         parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('action', choices=('generate', 'csv', 'plot'), help='action to take')
+        if len(self.filters) > 0:
+            parser.add_argument('--filter', choices=self.filters.keys(), help='use a predefined filter to read less data (depends on the collection). Does not work for `generate`.')
         args = parser.parse_args()
+        if args.filter is not None:
+            self.custom_filter = self.filters[args.filter]
         getattr(self, args.action)()
