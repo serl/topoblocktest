@@ -142,6 +142,7 @@ def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
                 for y_ax_index, y_ax in enumerate(y_axes):
                     value_error = y_ax.get_value(r)
                     if value_error is None:
+                        warnings.warn("Missing value on serie '{}' for y_ax '{}'".format(label, y_ax.__class__.__name__), RuntimeWarning)
                         continue
                     if not isinstance(value_error, tuple):
                         value_error = (value_error, 0)
