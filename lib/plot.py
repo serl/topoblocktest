@@ -17,7 +17,8 @@ def format_list(values, divisor=1000):
     while max(div_values) >= divisor:
         div_values = [x / divisor for x in div_values]
         power = powers[powers.index(power) + 1]
-    return div_values, power
+    decimal_positions = 1 if max(div_values) < 10 else 0
+    return map("{{:.{}f}}".format(decimal_positions).format, div_values), power
 
 
 class TogglableLegend:
@@ -75,7 +76,7 @@ class ThroughputAx(YAx):
 
     def format_ax(self, ax):
         formatted_locs, power = format_list(ax.get_yticks())
-        ax.set_yticklabels(map("{0:.0f}".format, formatted_locs))
+        ax.set_yticklabels(formatted_locs)
         ax.set_ylabel('throughput ({}b/s)'.format(power))
         ax.grid(True)
 
@@ -98,7 +99,7 @@ class PacketputAx(YAx):
 
     def format_ax(self, ax):
         formatted_locs, power = format_list(ax.get_yticks())
-        ax.set_yticklabels(map("{0:.0f}".format, formatted_locs))
+        ax.set_yticklabels(formatted_locs)
         ax.set_ylabel('throughput ({}pps)'.format(power))
         ax.grid(True)
 
