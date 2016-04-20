@@ -220,6 +220,7 @@ def iperf3m(directory, settings_hash, settings):
                 packetput += json_end[sum_key]['packets'] / json_end[sum_key]['seconds']
             bytes_streams.append(n_bytes)
         throughputs.append(throughput)
+        packetputs.append(packetput)
         fairnesses.append(jain_fairness(bytes_streams))
     return {
         'throughput': checked_mean_confidence(throughputs, settings_hash),
