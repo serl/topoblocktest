@@ -50,72 +50,16 @@ class TogglableLegend:
         self.fig.canvas.draw()
 
 
-def throughput_cpu(columns, rows_grouped, x_title='', style_fn=None):
-    if len(rows_grouped) == 0:
-        raise ValueError('Nothing to plot')
-    if style_fn is None:
-        style_fn = lambda row_element, group_id: {}
-    # import
-    from collections import OrderedDict
-    plt = import_matplotlib()
-
-    fig, axes = plt.subplots(len(rows_grouped), 2, sharex=True)
-    if len(rows_grouped) == 1:
-        axes = (axes,)
-    togglable_legend = TogglableLegend(fig)
-    row_id = 0
-    for (ax_throughput, ax_cpu) in axes:
-        while row_id not in rows_grouped:
-            row_id += 1
-        lines = []
-        for label, rowdetails in rows_grouped[row_id].items():
-            row = rowdetails['row']
-            row_element = None  # used for the style_fn
-            x_values = []
-            throughput_values = []
-            throughput_error = []
-            cpu_values = []
-            cpu_error = []
-            for i, col in enumerate(columns):
-                r = row[i]
-                if r is None:
-                    # warnings.warn("Missing value on serie '{}' for x value {}".format(label, col), RuntimeWarning)
-                    continue
-                row_element = r
-                throughput_values.append(r['iperf_result']['throughput'][0])
-                throughput_error.append(r['iperf_result']['throughput'][1])
-                cpu_values.append(100 - r['iostat_cpu']['idle'][0])  # 100 - idle
-                cpu_error.append(r['iostat_cpu']['idle'][1])
-                x_values.append(col)
-            basestyle = {'linestyle': '-', 'markersize': 7}
-            kwargs = basestyle.copy()
-            kwargs.update(style_fn(row_element, row_id))
-            series_lines = []
-            line, two, three = ax_throughput.errorbar(x_values, throughput_values, yerr=throughput_error, label=label, **kwargs)
-            series_lines.extend((line,) + two + three)
-            line, two, three = ax_cpu.errorbar(x_values, cpu_values, yerr=cpu_error, label=label, **kwargs)
-            series_lines.extend((line,) + two + three)
-            lines.append(series_lines)
-        ax_throughput.set_xlabel(x_title)
-        formatted_locs, power = format_list(ax_throughput.get_yticks())
-        ax_throughput.set_yticklabels(map("{0:.0f}".format, formatted_locs))
-        ax_throughput.set_ylabel('throughput ({}b/s)'.format(power))
-        ax_throughput.grid(True)
-        ax_cpu.set_xlabel(x_title)
-        ax_cpu.set_ylabel('cpu utilization (%)')
-        ax_cpu.grid(True)
-        ax_cpu.axis([None, None, 10, 105])
-
-        legend = ax_cpu.legend(bbox_to_anchor=(1, 1), loc=2, fontsize='x-small')
-        for legline, origlines in zip(legend.get_texts(), lines):
-            togglable_legend.add(legline, origlines)
-        row_id += 1
-
-    plt.subplots_adjust(left=0.05, right=0.82, top=0.95, bottom=0.1)
-    plt.show()
-
-
 class YAx:
+
+    @classmethod
+    def get_instance(cls, attr_name):
+        if attr_name == 'throughput':
+            return ThroughputAx()
+        elif attr_name == 'cpu':
+            return CpuAx()
+        elif attr_name == 'packetput':
+            return PacketputAx()
 
     def get_value(self, r):
         raise ValueError('Must be implemented in subclass')
@@ -139,7 +83,7 @@ class ThroughputAx(YAx):
 class CpuAx(YAx):
 
     def get_value(self, r):
-        return tuple(100 - r['iostat_cpu']['idle'][0], r['iostat_cpu']['idle'][1])  # 100 - idle
+        return (100 - r['iostat_cpu']['idle'][0], r['iostat_cpu']['idle'][1])  # 100 - idle
 
     def format_ax(self, ax):
         ax.set_ylabel('cpu utilization (%)')
@@ -162,6 +106,9 @@ class PacketputAx(YAx):
 def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
     if len(rows_grouped) == 0 or len(y_axes) == 0:
         raise ValueError('Nothing to plot')
+    for i, y_ax in enumerate(y_axes):
+        if isinstance(y_ax, str):
+            y_axes[i] = YAx.get_instance(y_ax)
     if style_fn is None:
         style_fn = lambda row_element, group_id: {}
     # import
@@ -183,36 +130,30 @@ def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
 
             # fill the data structures
             x_values = []
-            plot_values = []
-            plot_errors = []
-            for y_ax in y_axes:
-                local_values = []
-                local_errors = []
-                for i, col in enumerate(columns):
-                    r = row[i]
-                    if r is None:
-                        # warnings.warn("Missing value on serie '{}' for x value {}".format(label, col), RuntimeWarning)
-                        continue
-                    row_element = r
+            plot_values = [[] for i in range(len(y_axes))]
+            plot_errors = [[] for i in range(len(y_axes))]
+            for col_index, col_name in enumerate(columns):
+                r = row[col_index]
+                if r is None:
+                    # warnings.warn("Missing value on serie '{}' for x value {}".format(label, col), RuntimeWarning)
+                    continue
+                row_element = r
+                for y_ax_index, y_ax in enumerate(y_axes):
                     value_error = y_ax.get_value(r)
-                    if isinstance(value_error, tuple):
-                        local_values.append(value_error[0])
-                        local_errors.append(value_error[1])
-                    else:
-                        local_values.append(value_error)
-                        local_errors.append(0)
-                    x_values.append(col)
-                plot_values.append(local_values)
-                plot_errors.append(local_errors)
+                    if not isinstance(value_error, tuple):
+                        value_error = (value_error, 0)
+                    plot_values[y_ax_index].append(value_error[0])
+                    plot_errors[y_ax_index].append(value_error[1])
+                x_values.append(col_name)
 
             # draw plot
             basestyle = {'linestyle': '-', 'markersize': 7}
             kwargs = basestyle.copy()
             kwargs.update(style_fn(row_element, row_id))
             series_lines = []
-            for i, mpl_ax in enumerate(axes_row):
-                y_ax = y_axes[i]
-                line, two, three = mpl_ax.errorbar(x_values, plot_values[y_ax.name], yerr=plot_errors[y_ax.name], label=label, **kwargs)
+            for y_ax_index, mpl_ax in enumerate(axes_row):
+                y_ax = y_axes[y_ax_index]
+                line, two, three = mpl_ax.errorbar(x_values, plot_values[y_ax_index], yerr=plot_errors[y_ax_index], label=label, **kwargs)
                 series_lines.extend((line,) + two + three)
                 mpl_ax.set_xlabel(x_title)
                 y_ax.format_ax(mpl_ax)

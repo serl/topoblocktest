@@ -21,6 +21,7 @@ class iperf_veth_tests_udp(collection.Collection):
         return False
 
     x_axis = 'parallelism'
+    y_axes = ['throughput', 'packetput', 'cpu']
     x_title = 'parallelism'
 
     def analysis_row_key_fn(self, r):

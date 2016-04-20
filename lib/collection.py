@@ -7,6 +7,7 @@ class Collection:
     constants = {}
     variables = {}
     x_axis = None  # key on result dict
+    y_axes = []  # strings or YAx subclasses (see `plot` module)
     x_title = None
     row_key_attributes = tuple()
 
@@ -72,7 +73,7 @@ class Collection:
 
     def plot(self):
         cols, rows, rows_grouped = self.__analyze()
-        plot.throughput_cpu(cols, rows_grouped, self.x_title, self.plot_style_fn)
+        plot.dynamic(cols, rows_grouped, self.y_axes, self.x_title, self.plot_style_fn)
 
     def parse_shell_arguments(self):
         import argparse
