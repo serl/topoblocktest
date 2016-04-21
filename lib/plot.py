@@ -56,7 +56,8 @@ class TogglableLegend:
             self.__set_visibility(legline)
         elif event.mouseevent.button == 3:
             for ll in self.__lines_legend.keys():
-                self.__set_visibility(ll, ll == legline)  # hide all the others
+                visibility = (ll == legline) if not event.mouseevent.dblclick else True
+                self.__set_visibility(ll, visibility)
         self.fig.canvas.draw()
 
 
