@@ -74,7 +74,7 @@ def iperf2(directory, settings_hash, settings):
     for test in tests:
         expected_lines = settings['parallelism']
         mode = 'tcp'  # actually it is used even on udp with smaller packets, see the next line ;)
-        if settings['protocol'] == 'udp' and settings['packet_size'] >= 36:
+        if settings['protocol'] == 'udp' and settings['packet_size'] >= 52:
             expected_lines *= 2
             mode = 'udp'
         if settings['parallelism'] > 1:
@@ -82,7 +82,7 @@ def iperf2(directory, settings_hash, settings):
         if len(test) != expected_lines:
             raise AnalysisException('For test {}, the result sounds strange (parallelism {}, but {} lines in the csv, while {} expected).'.format(settings_hash, settings['parallelism'], len(test), expected_lines), settings_hash)
         if settings['parallelism'] == 1:
-            if len(test) == 2:  # udp and not legacy mode (packet_size >= 36)
+            if len(test) == 2:  # udp and not legacy mode (packet_size >= 52)
                 throughputs.append(float(test[1]['throughput']))
                 packetputs.append(float(test[1]['datagrams']) / test[1]['duration'])
             else:
