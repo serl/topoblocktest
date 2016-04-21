@@ -85,6 +85,9 @@ class Collection:
         if len(self.filters) > 0:
             parser.add_argument('--filter', choices=self.filters.keys(), help='use a predefined filter to read less data (depends on the collection). Does not work for `generate`.')
         args = parser.parse_args()
-        if args.filter is not None:
-            self.custom_filter = self.filters[args.filter]
+        try:
+            if args.filter is not None:
+                self.custom_filter = self.filters[args.filter]
+        except AttributeError:
+            pass
         getattr(self, args.action)()
