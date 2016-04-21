@@ -34,20 +34,29 @@ class TogglableLegend:
         self.__lines_legend[legend_line].extend(original_lines)
         legend_line.set_picker(5)  # 5 pts tolerance
 
+    def __set_visibility(self, legline, visibility=None):
+        origlines = self.__lines_legend[legline]
+        if visibility == None:
+            # toggle
+            visibility = not origlines[0].get_visible()
+        for origline in origlines:
+            origline.set_visible(visibility)
+        # Change the alpha on the line in the legend so we can see what lines
+        # have been toggled
+        if visibility:
+            legline.set_alpha(1.0)
+        else:
+            legline.set_alpha(0.4)
+
     def __onpick(self, event):
         # on the pick event, find the orig line corresponding to the
         # legend proxy line, and toggle the visibility
         legline = event.artist
-        origlines = self.__lines_legend[legline]
-        vis = not origlines[0].get_visible()
-        for origline in origlines:
-            origline.set_visible(vis)
-        # Change the alpha on the line in the legend so we can see what lines
-        # have been toggled
-        if vis:
-            legline.set_alpha(1.0)
-        else:
-            legline.set_alpha(0.4)
+        if event.mouseevent.button == 1:
+            self.__set_visibility(legline)
+        elif event.mouseevent.button == 3:
+            for ll in self.__lines_legend.keys():
+                self.__set_visibility(ll, ll == legline)  # hide all the others
         self.fig.canvas.draw()
 
 
