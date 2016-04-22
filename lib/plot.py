@@ -1,10 +1,11 @@
+import matplotlib
+import matplotlib.ticker
 import warnings
 # the other imports are inside functions!!!1
 
 
-def import_matplotlib(interactive=True):
+def import_matplotlib_pyplot(interactive=True):
     if interactive:
-        import matplotlib
         matplotlib.use('qt4agg')
     import matplotlib.pyplot as plt
     return plt
@@ -85,9 +86,8 @@ class ThroughputAx(YAx):
         return r['iperf_result']['throughput']
 
     def format_ax(self, ax):
-        formatted_locs, power = format_list(ax.get_yticks())
-        ax.set_yticklabels(formatted_locs)
-        ax.set_ylabel('throughput ({}b/s)'.format(power))
+        ax.yaxis.set_major_formatter(PrefixFormatter())
+        ax.set_ylabel('throughput (b/s)')
         ax.grid(True)
 
 
@@ -108,10 +108,35 @@ class PacketputAx(YAx):
         return r['iperf_result']['packetput']
 
     def format_ax(self, ax):
-        formatted_locs, power = format_list(ax.get_yticks())
-        ax.set_yticklabels(formatted_locs)
-        ax.set_ylabel('throughput ({}pps)'.format(power))
+        ax.yaxis.set_major_formatter(PrefixFormatter())
+        ax.set_ylabel('throughput (pps)')
         ax.grid(True)
+
+
+class PrefixFormatter(matplotlib.ticker.Formatter):
+    __powers = ['', 'K', 'M', 'G', 'T', 'P']
+    __divisor = 1000
+    __cache = {}
+
+    def __call__(self, x, pos=None):  # pos=None when trying to display the value on the statusbar (you're hovering the plot with the pointer)
+        if pos is None:
+            return x
+        locs_tuple = tuple(self.locs)
+        if locs_tuple not in self.__cache:
+            div_values = self.locs.copy()
+            div_xmax = self.locs[-1]
+            power_index = 0
+            while div_xmax >= self.__divisor and power_index < len(self.__powers):
+                div_values = [x / self.__divisor for x in div_values]
+                div_xmax = div_values[-1]
+                power_index += 1
+            power = self.__powers[power_index]
+            decimal_positions = 2  # if max(div_values) < 10 else 0
+            decimals = [str(int(n))[-(power_index * 3):] for n in self.locs]
+            decimal_lengths = [len(n.replace('0', '')) for n in decimals]
+            decimal_positions = max(decimal_lengths)
+            self.__cache[locs_tuple] = tuple(map("{{:.{}f}}{}".format(decimal_positions, power).format, div_values))
+        return self.__cache[locs_tuple][pos]
 
 
 def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
@@ -124,7 +149,7 @@ def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
         style_fn = lambda row_element, group_id: {}
     # import
     from collections import OrderedDict
-    plt = import_matplotlib()
+    plt = import_matplotlib_pyplot()
 
     fig, all_axes = plt.subplots(len(rows_grouped), len(y_axes), sharex=True)
     if len(rows_grouped) == 1:
