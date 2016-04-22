@@ -9,3 +9,4 @@ __pycache__/
 !/cache/.gitkeep
 /backup/*
 !/backup/.gitkeep
+.rsyncserver
