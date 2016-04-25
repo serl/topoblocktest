@@ -8,7 +8,7 @@ class iperf_veth_tests_tcp(collection.Collection):
     }
     variables = {
         'iperf_name': ('iperf2', 'iperf3', 'iperf3m'),
-        'parallelism': (1, 2, 3, 4, 8, 12, 16),
+        'parallelism': (1, 2, 3, 4, 5, 6, 7, 8, 12, 16),
         'packet_size': ('default', 536),
         'disable_offloading': (False, True),
         'zerocopy': (False, True),

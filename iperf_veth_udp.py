@@ -5,13 +5,13 @@ class iperf_veth_tests_udp(collection.Collection):
     constants = {
         'protocol': 'udp',
         'topology': 'direct_veth',
+        'zerocopy': False,
     }
     variables = {
         'iperf_name': ('iperf2', 'iperf3', 'iperf3m'),
-        'parallelism': (1, 2, 3, 4, 8, 12, 16),
-        'packet_size': (65507, 1458, 36, 1),
+        'parallelism': (1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 16),
+        'packet_size': (65507, 1458, 36),
         'disable_offloading': (False, True),
-        'zerocopy': (False, True),
         'affinity': (False, True),
     }
 
@@ -54,14 +54,13 @@ class iperf_veth_tests_udp(collection.Collection):
         if r['affinity'] and r['zerocopy']:
             color = 'green'
 
+        marker = '^'
         if r['packet_size'] == 65507:
             marker = 's'
         elif r['packet_size'] == 1458:
             marker = 'o'
         elif r['packet_size'] == 36:
             marker = 'v'
-        elif r['packet_size'] == 1:
-            marker = '^'
 
         return {
             'linestyle': '--' if r['disable_offloading'] else '-',
