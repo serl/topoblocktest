@@ -1,7 +1,17 @@
 #!/bin/bash
 shopt -s nullglob
 
-results="$(grep --files-with-matches "$@" results/*.config)"
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <regex> [regex...]"
+    exit
+fi
+
+results="$(grep "$1" results/*.config)"
+shift
+for regex in "$@"; do
+    results="$(echo "$results" | grep "$regex")"
+done
+results="$(echo "$results" | cut -f1 -d:)"
 
 if [ -z "$results" ]; then
     echo "Nothing found."
