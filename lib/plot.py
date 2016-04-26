@@ -83,7 +83,10 @@ class YAx:
 class ThroughputAx(YAx):
 
     def get_value(self, r):
-        return r['iperf_result']['throughput']
+        try:
+            return r['iperf_result']['throughput']
+        except TypeError:
+            return None
 
     def format_ax(self, ax):
         ax.yaxis.set_major_formatter(PrefixFormatter())
@@ -94,7 +97,10 @@ class ThroughputAx(YAx):
 class CpuAx(YAx):
 
     def get_value(self, r):
-        return (100 - r['iostat_cpu']['idle'][0], r['iostat_cpu']['idle'][1])  # 100 - idle
+        try:
+            return (100 - r['iostat_cpu']['idle'][0], r['iostat_cpu']['idle'][1])  # 100 - idle
+        except TypeError:
+            return None
 
     def format_ax(self, ax):
         ax.set_ylabel('cpu utilization (%)')
@@ -105,7 +111,10 @@ class CpuAx(YAx):
 class PacketputAx(YAx):
 
     def get_value(self, r):
-        return r['iperf_result']['packetput']
+        try:
+            return r['iperf_result']['packetput']
+        except TypeError:
+            return None
 
     def format_ax(self, ax):
         ax.yaxis.set_major_formatter(PrefixFormatter())
@@ -131,7 +140,6 @@ class PrefixFormatter(matplotlib.ticker.Formatter):
                 div_xmax = div_values[-1]
                 power_index += 1
             power = self.__powers[power_index]
-            decimal_positions = 2  # if max(div_values) < 10 else 0
             decimals = [str(int(n))[-(power_index * 3):] for n in self.locs]
             decimal_lengths = [len(n.replace('0', '')) for n in decimals]
             decimal_positions = max(decimal_lengths)
@@ -191,6 +199,8 @@ def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
             kwargs.update(style_fn(row_element, row_id))
             series_lines = []
             for y_ax_index, mpl_ax in enumerate(axes_row):
+                if not len(x_values[y_ax_index]):
+                    continue
                 y_ax = y_axes[y_ax_index]
                 line, two, three = mpl_ax.errorbar(x_values[y_ax_index], plot_values[y_ax_index], yerr=plot_errors[y_ax_index], label=label, **kwargs)
                 series_lines.extend((line,) + two + three)
@@ -199,8 +209,9 @@ def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
             lines.append(series_lines)
 
         legend = mpl_ax.legend(bbox_to_anchor=(1, 1), loc=2, fontsize='x-small')
-        for legline, origlines in zip(legend.get_texts(), lines):
-            togglable_legend.add(legline, origlines)
+        if legend is not None:  # it may happen, if we have no series on that axis :/
+            for legline, origlines in zip(legend.get_texts(), lines):
+                togglable_legend.add(legline, origlines)
         row_id += 1
 
     plt.subplots_adjust(left=0.05, right=0.82, top=0.95, bottom=0.1)
