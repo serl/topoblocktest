@@ -1,4 +1,5 @@
 import lib.collection as collection
+from collections import OrderedDict
 
 
 class iperf_veth_tests_udp(collection.Collection):
@@ -7,13 +8,14 @@ class iperf_veth_tests_udp(collection.Collection):
         'topology': 'direct_veth',
         'zerocopy': False,
     }
-    variables = {
-        'iperf_name': ('iperf2', 'iperf3', 'iperf3m'),
-        'parallelism': (1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 16),
-        'packet_size': (65507, 1458, 36),
-        'disable_offloading': (False, True),
-        'affinity': (False, True),
-    }
+    variables = OrderedDict([
+        ('parallelism', (1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 16)),
+
+        ('iperf_name', ('iperf2', 'iperf3', 'iperf3m')),
+        ('disable_offloading', (False, True)),
+        ('packet_size', (65507, 1458, 36)),
+        ('affinity', (False, True)),
+    ])
 
     def generation_skip_fn(self, settings):
         if settings['iperf_name'] == 'iperf2' and (settings['zerocopy'] or settings['affinity']):
@@ -28,11 +30,6 @@ class iperf_veth_tests_udp(collection.Collection):
         'iperf3m': lambda r: r['iperf_name'] != 'iperf3m',
         'smallpackets': lambda r: r['packet_size'] > 36,
     }
-
-    def analysis_row_key_fn(self, r):
-        zcpyaff_key = '{}{}'.format('z' if r['zerocopy'] else 'a', 'z' if r['affinity'] else 'a')
-        return "{iperf_name: <7}-{}-{:05d}-{}".format('z' if r['disable_offloading'] else 'a', r['packet_size'] if r['packet_size'] != 'default' else 0, zcpyaff_key, **r)
-        # TODO: move it into superclass, and substitute with row_key_attributes
 
     def analysis_row_label_fn(self, r):
         zcpyaff_label_list = []

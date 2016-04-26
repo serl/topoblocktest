@@ -9,7 +9,6 @@ class Collection:
     x_axis = None  # key on result dict
     y_axes = []  # strings or YAx subclasses (see `plot` module)
     x_title = None
-    row_key_attributes = tuple()
     filters = {}  # name => skip_fn
 
     def __init__(self):
@@ -20,12 +19,19 @@ class Collection:
         return False
 
     def analysis_row_label_fn(self, row_element):
-        raise ValueError('For analysis purposes, the `analysis_row_label_fn` must be redefined in subclass.')
+        raise ValueError('For analysis purposes, the `analysis_row_label_fn` must be defined in subclass.')
 
     def analysis_row_key_fn(self, row_element):
-        if not len(self.row_key_attributes):
-            raise ValueError('For analysis purposes, the `row_key_attributes` is required.')
-        raise Exception('TODO: implementation')
+        key = ''
+        for attr_name, attr_values in self.variables.items():
+            if attr_name == self.x_axis:
+                continue
+            value = row_element[attr_name]
+            if attr_name == 'packet_size' and value == 'default':
+                value = '0'
+            attr_values_max_len = max(map(len, map(str, attr_values)))
+            key += "{0:>{1}}".format(value, attr_values_max_len)
+        return key
 
     def analysis_row_info_fn(self, row_element):
         return self.analysis_row_key_fn(row_element), self.analysis_row_label_fn(row_element),
