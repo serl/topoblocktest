@@ -82,7 +82,7 @@ class Collection:
 
     def plot(self):
         cols, rows, rows_grouped = self.__analyze()
-        plot.dynamic(cols, rows_grouped, self.y_axes, self.x_title, self.plot_style_fn)
+        plot.dynamic(cols, rows_grouped, self.y_axes, self.x_title, self.__class__.__name__, self.plot_style_fn)
 
     def parse_shell_arguments(self):
         import argparse

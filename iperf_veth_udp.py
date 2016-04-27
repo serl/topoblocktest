@@ -2,7 +2,7 @@ import lib.collection as collection
 from collections import OrderedDict
 
 
-class iperf_veth_tests_udp(collection.Collection):
+class iperf_veth_udp(collection.Collection):
     constants = {
         'protocol': 'udp',
         'topology': 'direct_veth',
@@ -67,4 +67,4 @@ class iperf_veth_tests_udp(collection.Collection):
 
 
 if __name__ == '__main__':
-    iperf_veth_tests_udp().parse_shell_arguments()
+    iperf_veth_udp().parse_shell_arguments()

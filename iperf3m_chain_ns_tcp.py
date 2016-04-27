@@ -2,7 +2,7 @@ import lib.collection as collection
 from collections import OrderedDict
 
 
-class iperf3m_chain_ns_udp(collection.Collection):
+class iperf3m_chain_ns_tcp(collection.Collection):
     constants = {
         'iperf_name': 'iperf3m',
         'protocol': 'tcp',
@@ -65,4 +65,4 @@ class iperf3m_chain_ns_udp(collection.Collection):
 
 
 if __name__ == '__main__':
-    iperf3m_chain_ns_udp().parse_shell_arguments()
+    iperf3m_chain_ns_tcp().parse_shell_arguments()

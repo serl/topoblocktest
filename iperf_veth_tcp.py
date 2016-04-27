@@ -2,7 +2,7 @@ import lib.collection as collection
 from collections import OrderedDict
 
 
-class iperf_veth_tests_tcp(collection.Collection):
+class iperf_veth_tcp(collection.Collection):
     constants = {
         'protocol': 'tcp',
         'topology': 'direct_veth',
@@ -59,4 +59,4 @@ class iperf_veth_tests_tcp(collection.Collection):
 
 
 if __name__ == '__main__':
-    iperf_veth_tests_tcp().parse_shell_arguments()
+    iperf_veth_tcp().parse_shell_arguments()

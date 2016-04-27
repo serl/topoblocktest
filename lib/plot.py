@@ -147,7 +147,7 @@ class PrefixFormatter(matplotlib.ticker.Formatter):
         return self.__cache[locs_tuple][pos]
 
 
-def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
+def dynamic(columns, rows_grouped, y_axes, x_title='', window_title='', style_fn=None):
     if len(rows_grouped) == 0 or len(y_axes) == 0:
         raise ValueError('Nothing to plot')
     for i, y_ax in enumerate(y_axes):
@@ -160,6 +160,7 @@ def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
     plt = import_matplotlib_pyplot()
 
     fig, all_axes = plt.subplots(len(rows_grouped), len(y_axes), sharex=True)
+    fig.canvas.set_window_title(window_title)
     if len(rows_grouped) == 1:
         all_axes = (all_axes,)
     togglable_legend = TogglableLegend(fig)
