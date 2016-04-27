@@ -206,6 +206,8 @@ def dynamic(columns, rows_grouped, y_axes, x_title='', style_fn=None):
                 series_lines.extend((line,) + two + three)
                 mpl_ax.set_xlabel(x_title)
                 y_ax.format_ax(mpl_ax)
+                if mpl_ax.get_xlim()[1] > 1000:
+                    mpl_ax.xaxis.set_major_formatter(PrefixFormatter())
             lines.append(series_lines)
 
         legend = mpl_ax.legend(bbox_to_anchor=(1, 1), loc=2, fontsize='x-small')

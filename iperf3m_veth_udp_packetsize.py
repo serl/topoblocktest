@@ -18,7 +18,7 @@ class iperf_veth_tests_udp(collection.Collection):
 
     x_axis = 'packet_size'
     y_axes = ['throughput', 'packetput', 'cpu']
-    x_title = 'packet size'
+    x_title = 'packet size (B)'
 
     def analysis_row_label_fn(self, r):
         return "{iperf_name} ({parallelism} flows) {protocol}".format(**r)
