@@ -1,13 +1,15 @@
+#!/usr/bin/env python
+
+import argparse
+import argcomplete
 import re
 from collections import OrderedDict
 import lib.topologies as topologies
 from lib.test_master import generate
 
 if __name__ == '__main__':
-    import argparse
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--run', type=int, default=0, help='immediately run the test N times', metavar='N')
-    # parser.add_argument('--collection', help='subdirectory where the results will be stored')
     type_group = parser.add_argument_group('test type')
     type_group.add_argument('--iperf_name', default='iperf2', choices=('iperf2', 'iperf3', 'iperf3m'), help='choses the iperf version')
     type_group.add_argument('--parallelism', type=int, default=1, help='number parallel flows')
@@ -31,6 +33,7 @@ if __name__ == '__main__':
         for arg_name, arg_args in topo_arguments.items():
             arg_group.add_argument('--{}_{}'.format(topo_name, arg_name), **arg_args)
 
+    argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
     settings = vars(args)  # this is not a copy!
