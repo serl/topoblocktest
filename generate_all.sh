@@ -1,6 +1,11 @@
 #!/bin/bash
 
-python generate_iperf_veth.py
-python generate_iperf_chain_ovs.py
-python generate_iperf_chain_ns.py
-python generate_iperf_compare_chain_ns.py
+python iperf_veth_udp.py generate
+python iperf_veth_tcp.py generate
+
+python iperf3m_chain_ovs_tcp.py generate
+
+python iperf3m_chain_ns_udp.py generate
+python iperf3m_chain_ns_tcp.py generate
+
+python iperf3m_veth_udp_packetsize.py generate
