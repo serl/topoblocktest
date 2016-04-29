@@ -24,6 +24,16 @@ def checked_mean_confidence(throughputs, settings_hash):
     return throughput_meanconf
 
 
+def count(directory, settings_hash):
+    count = 0
+    try:
+        with directory.joinpath(settings_hash + '.count').open() as count_fh:
+            count = int(count_fh.read())
+    except (FileNotFoundError, ValueError):
+        pass
+    return count
+
+
 def iostat_cpu(directory, settings_hash):
     try:
         with directory.joinpath(settings_hash + '.cpu').open() as file_handler:
