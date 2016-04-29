@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import lib.test_master
 from lib.analyze import AnalysisException
 
@@ -20,8 +22,10 @@ def count_exceptions():
 if __name__ == '__main__':
     import subprocess
     import argparse
+    import argcomplete
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--run-editor', help='run the specified editor for each Exception')
+    argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
     test_hashes = count_exceptions()
