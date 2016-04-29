@@ -1,7 +1,9 @@
+import re
 import subprocess
 
 
 class CommandBlock:
+    __timeout_re = re.compile(r"\s+timeout\s+.*?(\d+)")
 
     @classmethod
     def root_check(cls):
@@ -16,6 +18,16 @@ class CommandBlock:
         for c in self.__commands:
             res += c.format(*args, **kwargs)
         return res
+
+    def execution_time(self):
+        time = 0.0
+        for command in self.__commands:
+            if command.strip().startswith('sleep'):
+                time += float(command.split()[1])
+            timeout_match = self.__timeout_re.search(command)
+            if timeout_match is not None:
+                time += float(timeout_match.group(1))
+        return time
 
     def run(self):
         proc = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, universal_newlines=True)
@@ -38,7 +50,7 @@ class CommandBlock:
         if arg is None:
             return self
         if isinstance(arg, str):
-            self.__commands.append(arg)
+            self.__commands.extend(arg.split('\n'))
             return self
         try:
             self.__commands.extend(arg)  # CommandBlock IS iterable, so this will also merge two CommandBlocks

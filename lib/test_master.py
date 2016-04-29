@@ -59,32 +59,40 @@ def generate(**settings):
 
 
 def run_all(target_repetitions=0, dry_run=False, recursion_limit=50):
+    if not hasattr(run_all, "scripts"):
+        run_all.scripts = {}  # hash => CommandBlock instance
     to_run = []  # each script will appear N times, so to reach the target_repetitions
     p = pathlib.Path(results_dir)
     max_count = 0
+    forecast_time = 0
     for script_file in p.glob('*.sh'):
+        settings_hash = script_file.stem
         count = 0
         try:
-            with script_file.parent.joinpath(script_file.stem + '.count').open() as count_fh:
+            with script_file.parent.joinpath(settings_hash + '.count').open() as count_fh:
                 count = int(count_fh.read())
         except (FileNotFoundError, ValueError):
             pass
         max_count = max(max_count, count)
-        to_run.extend([script_file] * (target_repetitions - count))
+        needed_repetitions = target_repetitions - count
+        if needed_repetitions > 0:
+            with script_file.open() as script_fh:
+                run_all.scripts[settings_hash] = CommandBlock() + script_fh.read()
+            to_run.extend([settings_hash] * needed_repetitions)
+            forecast_time += run_all.scripts[settings_hash].execution_time() * needed_repetitions
     if target_repetitions == 0:
         return run_all(max_count, dry_run, recursion_limit)
     if not dry_run and len(to_run) > 0:
         random.shuffle(to_run)  # the order becomes unpredictable: I think it's a good idea
-        for current, script_file in enumerate(to_run, start=1):
-            with script_file.open() as script_fh:
-                script = CommandBlock() + script_fh.read()
-                print("Running {} ({}/{})...".format(script_file.name, current, len(to_run)))
-                script.run()
+        for current, settings_hash in enumerate(to_run, start=1):
+            script = run_all.scripts[settings_hash]
+            print("Running {} ({}/{})...".format(settings_hash, current, len(to_run)))
+            script.run()
         if recursion_limit <= 0:
             warnings.warn("Hit recursion limit. Some tests didn't run correctly!")
         else:
             run_all(target_repetitions, recursion_limit=(recursion_limit - 1))
-    return len(to_run), target_repetitions
+    return len(to_run), forecast_time, target_repetitions
 
 
 def get_results_db(clear_cache=False, skip=[]):
