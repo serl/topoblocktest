@@ -5,7 +5,6 @@ from lib.analyze import AnalysisException
 
 
 def count_exceptions():
-    count = 0
     skip = []
     exceptions_found = True
     while exceptions_found:
@@ -16,7 +15,6 @@ def count_exceptions():
             exceptions_found = True
             print('Exception: {}'.format(e))
             skip.append(e.test_hash)
-            count += 1
     return skip
 
 if __name__ == '__main__':
