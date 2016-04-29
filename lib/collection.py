@@ -87,7 +87,7 @@ class Collection:
     def parse_shell_arguments(self):
         import argparse
         parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument('action', choices=('generate', 'csv', 'plot'), help='action to take')
+        parser.add_argument('action', choices=('generate', 'csv', 'plot'), default='plot', nargs='?', help='action to take')
         if len(self.filters) > 0:
             parser.add_argument('--filter', choices=self.filters.keys(), help='use a predefined filter to read less data (depends on the collection). Does not work for `generate`.')
         args = parser.parse_args()
