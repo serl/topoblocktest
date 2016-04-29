@@ -61,6 +61,7 @@ def generate(**settings):
 def run_all(target_repetitions=0, dry_run=False, recursion_limit=50):
     to_run = []  # each script will appear N times, so to reach the target_repetitions
     p = pathlib.Path(results_dir)
+    max_count = 0
     for script_file in p.glob('*.sh'):
         count = 0
         try:
@@ -68,9 +69,12 @@ def run_all(target_repetitions=0, dry_run=False, recursion_limit=50):
                 count = int(count_fh.read())
         except (FileNotFoundError, ValueError):
             pass
+        max_count = max(max_count, count)
         to_run.extend([script_file] * (target_repetitions - count))
+    if target_repetitions == 0:
+        return run_all(max_count, dry_run, recursion_limit)
     if not dry_run and len(to_run) > 0:
-        random.shuffle(to_run)  # the order becomes unpredictable, because I think it's a good idea
+        random.shuffle(to_run)  # the order becomes unpredictable: I think it's a good idea
         for current, script_file in enumerate(to_run, start=1):
             with script_file.open() as script_fh:
                 script = CommandBlock() + script_fh.read()
@@ -80,7 +84,7 @@ def run_all(target_repetitions=0, dry_run=False, recursion_limit=50):
             warnings.warn("Hit recursion limit. Some tests didn't run correctly!")
         else:
             run_all(target_repetitions, recursion_limit=(recursion_limit - 1))
-    return len(to_run)
+    return len(to_run), target_repetitions
 
 
 def get_results_db(clear_cache=False, skip=[]):
