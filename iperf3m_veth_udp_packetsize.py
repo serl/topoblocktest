@@ -14,7 +14,7 @@ class iperf3m_veth_udp_packetsize(collection.Collection):
         ('packet_size', tuple([2048 * (m + 1) - 29 for m in range(0, 32)])),
 
         ('disable_offloading', (False, True)),
-        ('parallelism', (1, 6, 8, 12, 24)),
+        ('parallelism', (1, 3, 6, 8, 12, 24)),
     ])
 
     x_axis = 'packet_size'
@@ -26,11 +26,12 @@ class iperf3m_veth_udp_packetsize(collection.Collection):
 
     def plot_style_fn(self, r, group_id):
         colors = {
-            1: 'blue',
+            1: 'black',
+            3: 'blue',
             6: 'green',
-            8: 'red',
-            12: 'purple',
-            24: 'black',
+            8: 'purple',
+            12: 'red',
+            24: 'yellow',
         }
         return {
             'linestyle': '--' if r['disable_offloading'] else '-',
