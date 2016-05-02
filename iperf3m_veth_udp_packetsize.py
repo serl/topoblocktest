@@ -14,7 +14,7 @@ class iperf3m_veth_udp_packetsize(collection.Collection):
         ('packet_size', tuple([2048 * (m + 1) - 29 for m in range(0, 32)])),
 
         ('disable_offloading', (False, True)),
-        ('parallelism', (1, 3, 6, 8, 12, 24)),
+        ('parallelism', (1, 3, 4, 5, 6, 8, 12, 24)),
     ])
 
     x_axis = 'packet_size'
@@ -28,8 +28,10 @@ class iperf3m_veth_udp_packetsize(collection.Collection):
         colors = {
             1: 'black',
             3: 'blue',
-            6: 'green',
-            8: 'purple',
+            4: 'green',
+            5: 'purple',
+            6: 'cyan',
+            8: 'orange',
             12: 'red',
             24: 'yellow',
         }
