@@ -80,7 +80,7 @@ def run_all(target_repetitions=0, dry_run=False, recursion_limit=50):
                 run_all.scripts[settings_hash] = CommandBlock() + script_fh.read()
             to_run.extend([settings_hash] * needed_repetitions)
             forecast_time += run_all.scripts[settings_hash].execution_time() * needed_repetitions
-    if target_repetitions == 0:
+    if target_repetitions == 0 and max_count > 0:
         return run_all(max_count, dry_run, recursion_limit)
     if not dry_run and len(to_run) > 0:
         random.shuffle(to_run)  # the order becomes unpredictable: I think it's a good idea
