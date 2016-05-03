@@ -25,10 +25,11 @@ if __name__ == '__main__':
         if not callable(obj) or 'arguments' not in dir(obj):
             continue
         topologies_infos[obj_name] = obj.arguments
-    topologies_names = tuple(topologies_infos.keys())
+    topologies_names = sorted(list(topologies_infos.keys()), key=len)
     topo_group.add_argument('--topology', default=topologies_names[0], choices=topologies_names, help='define topology type')
     topo_group.add_argument('--disable_offloading', default=False, action='store_true', help='disable offloading (jumbo packets)')
-    for topo_name, topo_arguments in topologies_infos.items():
+    for topo_name in topologies_names:
+        topo_arguments = topologies_infos[topo_name]
         arg_group = parser.add_argument_group('{} specific options'.format(topo_name))
         for arg_name, arg_args in topo_arguments.items():
             arg_group.add_argument('--{}_{}'.format(topo_name, arg_name), **arg_args)
@@ -38,7 +39,7 @@ if __name__ == '__main__':
 
     settings = vars(args)  # this is not a copy!
     run = settings.pop('run', False)
-    for topo_name in topologies_infos:
+    for topo_name in reversed(topologies_names):
         keep = (topo_name == settings['topology'])
         for arg_name in tuple(settings.keys()):
             if arg_name.startswith(topo_name):
