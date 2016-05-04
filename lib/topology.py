@@ -90,8 +90,11 @@ class Netns(Entity):
     def add_route(self, destination, endpoint):
         self.routes.append((destination, endpoint))
 
-    def add_configure_command(self, command):
-        self.configure_commands.append("ip netns exec {self.name} " + command)
+    def add_configure_command(self, command, inside_ns=True):
+        if inside_ns:
+            self.configure_commands.append("ip netns exec {self.name} " + command)
+        else:
+            self.configure_commands.append(command)
 
     def create(self):
         return super().create() + "ip netns add {self.name}".format(self=self)
