@@ -1,5 +1,7 @@
+import os
 import re
 import subprocess
+from tempfile import NamedTemporaryFile
 
 
 class CommandBlock:
@@ -30,8 +32,11 @@ class CommandBlock:
         return time
 
     def run(self):
-        proc = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, universal_newlines=True)
-        proc.communicate(str(self))
+        with NamedTemporaryFile(mode='wt', delete=False) as script_file:
+            script_file.write(str(self))
+        proc = subprocess.Popen(['/bin/bash', script_file.name], universal_newlines=True)
+        proc.wait()
+        os.unlink(script_file.name)
         return proc.returncode
 
     def __iter__(self):
