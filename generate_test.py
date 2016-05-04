@@ -9,7 +9,7 @@ from lib.test_master import generate
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--run', type=int, default=0, help='immediately run the test N times', metavar='N')
+    parser.add_argument('--run', type=int, default=0, help='immediately run the test N times (a negative value will make the test run abs(N) times, dropping you to bash before the cleanup)', metavar='N')
     type_group = parser.add_argument_group('test type')
     type_group.add_argument('--iperf_name', default='iperf3m', choices=('iperf2', 'iperf3', 'iperf3m'), help='choses the iperf version')
     type_group.add_argument('--parallelism', type=int, default=1, help='number parallel flows')
@@ -49,6 +49,6 @@ if __name__ == '__main__':
                 else:
                     settings.pop(arg_name)
     test_hash, script = generate(**settings)
-    for x in range(run):
-        script.run()
+    for x in range(abs(run)):
+        script.run(run < 0)
     print('Test hash: {}'.format(test_hash))

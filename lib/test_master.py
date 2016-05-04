@@ -58,7 +58,7 @@ def generate(**settings):
     return settings_hash, script
 
 
-def run_all(target_repetitions=0, dry_run=False, recursion_limit=50):
+def run_all(target_repetitions=0, dry_run=False, debug=False, recursion_limit=50):
     if not hasattr(run_all, "scripts"):
         run_all.scripts = {}  # hash => CommandBlock instance
     to_run = []  # each script will appear N times, so to reach the target_repetitions
@@ -81,17 +81,17 @@ def run_all(target_repetitions=0, dry_run=False, recursion_limit=50):
             to_run.extend([settings_hash] * needed_repetitions)
             forecast_time += run_all.scripts[settings_hash].execution_time() * needed_repetitions
     if target_repetitions == 0 and max_count > 0:
-        return run_all(max_count, dry_run, recursion_limit)
+        return run_all(max_count, dry_run, debug, recursion_limit)
     if not dry_run and len(to_run) > 0:
         random.shuffle(to_run)  # the order becomes unpredictable: I think it's a good idea
         for current, settings_hash in enumerate(to_run, start=1):
             script = run_all.scripts[settings_hash]
             print("Running {} ({}/{})...".format(settings_hash, current, len(to_run)))
-            script.run()
+            script.run(add_bash=settings_hash if debug else False)
         if recursion_limit <= 0:
             warnings.warn("Hit recursion limit. Some tests didn't run correctly!")
         else:
-            run_all(target_repetitions, recursion_limit=(recursion_limit - 1))
+            run_all(target_repetitions, False, debug, recursion_limit - 1)
     return len(to_run), forecast_time, target_repetitions
 
 

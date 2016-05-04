@@ -8,9 +8,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('target_repetitions', type=int, default=0, nargs='?', help='ensure all tests ran at least TARGET_REPETITIONS times. If not present, it will be guessed by taking the most repeated test.')
     parser.add_argument('--dry-run', action='store_true', help='do not actually run the tests, only count them')
+    parser.add_argument('--debug', action='store_true', help='drop to bash after each experiment, right before the cleanup')
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
-    run_tests, forecast_time, target_repetitions = run_all(args.target_repetitions, args.dry_run)
+    run_tests, forecast_time, target_repetitions = run_all(args.target_repetitions, args.dry_run, args.debug)
     if run_tests > 0:
         if args.dry_run:
             hours, remainder = divmod(forecast_time, 3600)

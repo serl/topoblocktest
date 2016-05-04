@@ -11,6 +11,14 @@ class CommandBlock:
     def root_check(cls):
         return cls() + 'if [ $EUID -ne 0 ]; then echo "root account required!"; exit 1; fi'
 
+    @classmethod
+    def get_bash(cls, label='Bash'):
+        cmds = cls()
+        cmds += 'echo ; echo "DROP THE BASH!!"'
+        prompt = r'\u@\h:\w%'
+        cmds += 'PS1="[{}] {} " bash --norc'.format(label, prompt)
+        return cmds
+
     def __init__(self):
         self.__commands = []
 
@@ -31,7 +39,9 @@ class CommandBlock:
                 time += float(timeout_match.group(1))
         return time
 
-    def run(self):
+    def run(self, add_bash=False):
+        if add_bash:
+            self += self.__class__.get_bash(str(add_bash) if type(add_bash) != type(True) else 'Debug')
         with NamedTemporaryFile(mode='wt', delete=False) as script_file:
             script_file.write(str(self))
         proc = subprocess.Popen(['/bin/bash', script_file.name], universal_newlines=True)
