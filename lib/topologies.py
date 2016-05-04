@@ -46,7 +46,7 @@ ovs_chain.arguments = OrderedDict([
 ])
 
 
-def ns_chain(disable_offloading=False, **settings):
+def unrouted_ns_chain(disable_offloading=False, **settings):
     n_ns = settings['chain_len']
     use_ovs = settings['use_ovs']
     ovs_ns_links = settings['ovs_ns_links']
@@ -83,9 +83,18 @@ def ns_chain(disable_offloading=False, **settings):
 
         subnet_number += 1
 
+    return m, nss, base_net
+unrouted_ns_chain.arguments = OrderedDict([
+    ('chain_len', {'type': int, 'default': 2, 'help': 'number of namespaces to chain'}),
+    ('use_ovs', {'default': False, 'action': 'store_true', 'help': 'use OvS switches to link the namespaces'}),
+    ('ovs_ns_links', {'default': 'port', 'choices': ('port', 'veth'), 'help': 'choses the link type between OvS and namespaces, if OvS is enabled'}),
+])
+
+
+def ns_chain_add_routing(m, nss, base_net):
     # do the routing for intermediate namespaces
     for i, ns in enumerate(nss):
-        for subnet_number in range(n_ns - 1):
+        for subnet_number in range(len(nss) - 1):
             if subnet_number in range(i - 1, i + 1):
                 continue  # directly linked
             elif subnet_number < i:
@@ -94,9 +103,44 @@ def ns_chain(disable_offloading=False, **settings):
                 endpoint = ns.right
             ns.add_route('{}.{}.0/24'.format(base_net, subnet_number), endpoint)
 
+
+def ns_chain(disable_offloading=False, **settings):
+    m, nss, base_net = unrouted_ns_chain(disable_offloading, **settings)
+    ns_chain_add_routing(m, nss, base_net)
     return (m, nss[0], nss[-1])
-ns_chain.arguments = OrderedDict([
-    ('chain_len', {'type': int, 'default': 2, 'help': 'number of namespaces to chain'}),
-    ('use_ovs', {'default': False, 'action': 'store_true', 'help': 'use OvS switches to link the namespaces'}),
-    ('ovs_ns_links', {'default': 'port', 'choices': ('port', 'veth'), 'help': 'choses the link type between OvS and namespaces, if OvS is enabled'}),
-])
+ns_chain.arguments = unrouted_ns_chain.arguments
+
+
+def ns_chain_iptables(disable_offloading=False, **settings):
+    m, nss, base_net = unrouted_ns_chain(disable_offloading, **settings)
+    ns_chain_add_routing(m, nss, base_net)
+
+    if settings['iptables_type'] == 'stateful':
+        max_int = 9223372036854775807  # see https://en.wikipedia.org/wiki/9223372036854775807 ...ok, it's that --connbytes takes 64bit integers.
+
+        def generate_rule(x):
+            return "iptables -w -A fakerules -m connbytes --connbytes {}:{} --connbytes-dir reply --connbytes-mode bytes -j ACCEPT".format(max_int - x - 1, max_int - x)
+    else:
+        def generate_rule(x):
+            second_octet, remainder = divmod(x + 1, 255 * 255)
+            third_octet, fourth_octet = divmod(remainder, 255)
+            rule_ipaddr = '11.{}.{}.{}'.format(second_octet, third_octet, fourth_octet)
+            return "iptables -w -A fakerules --source {} -j DROP".format(rule_ipaddr)
+
+    for ns in nss:
+        ns.add_configure_command("echo '  adding {iptables_rules_len} {iptables_type} iptables rules'".format(**settings))
+        ns.add_configure_command("iptables -w -N fakerules")
+        ns.add_configure_command("iptables -w -A INPUT -j fakerules")
+        ns.add_configure_command("iptables -w -A FORWARD -j fakerules")
+        ns.add_configure_command('last_ts="$(date +%s)"', False)
+        for x in range(settings['iptables_rules_len']):
+            if not ((x + 1) % 100) and x > 0:
+                ns.add_configure_command('cur_ts="$(date +%s)"', False)
+                ns.add_configure_command('echo "  inserted {} rules ($((cur_ts - last_ts))s from the last report)"'.format(x + 1), False)
+                ns.add_configure_command('last_ts=$cur_ts', False)
+            ns.add_configure_command(generate_rule(x))
+
+    return (m, nss[0], nss[-1])
+ns_chain_iptables.arguments = ns_chain.arguments.copy()
+ns_chain_iptables.arguments['iptables_type'] = {'default': 'stateless', 'choices': ('stateless', 'stateful'), 'help': 'iptables rules type'}
+ns_chain_iptables.arguments['iptables_rules_len'] = {'type': int, 'default': 0, 'help': 'number of useless iptables rules to inject'}
