@@ -85,9 +85,13 @@ class Netns(Entity):
         super().__init__()
         self.name = name
         self.routes = []
+        self.configure_commands = []
 
     def add_route(self, destination, endpoint):
         self.routes.append((destination, endpoint))
+
+    def add_configure_command(self, command):
+        self.configure_commands.append("ip netns exec {self.name} " + command)
 
     def create(self):
         return super().create() + "ip netns add {self.name}".format(self=self)
@@ -96,6 +100,8 @@ class Netns(Entity):
         cmds = CommandBlock()
         for r in self.routes:
             cmds += "ip netns exec {self.name} ip route add " + r[0] + " via " + r[1].ip_address + " proto static"
+        for c in self.configure_commands:
+            cmds += c
         return super().configure() + cmds.format(self=self)
 
     def destroy(self):
