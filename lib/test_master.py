@@ -58,7 +58,7 @@ def generate(**settings):
     return settings_hash, script
 
 
-def run_all(target_repetitions=0, dry_run=False, debug=False, recursion_limit=50):
+def run_all(target_repetitions=0, dry_run=False, debug=False, recursion_limit=10):
     if not hasattr(run_all, "scripts"):
         run_all.scripts = {}  # hash => CommandBlock instance
     to_run = []  # each script will appear N times, so to reach the target_repetitions
