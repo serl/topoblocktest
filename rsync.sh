@@ -8,3 +8,10 @@ if [ -z "$server_path" ]; then
 fi
 
 rsync --compress --recursive --times --delete --progress "$server_path/results/" results/
+
+echo
+read -p "Purge Python results cache? " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    rm cache/results.pdl
+fi
