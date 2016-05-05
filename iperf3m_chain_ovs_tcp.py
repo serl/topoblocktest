@@ -65,7 +65,7 @@ class iperf3m_chain_ovs_tcp(collection.Collection):
         if r['disable_offloading']:
             linestyle = '--'
         elif r['zerocopy']:
-            linestyle = '.'
+            linestyle = ':'
 
         return {
             'color': colors[self.get_link_label(r)],
