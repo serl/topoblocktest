@@ -18,7 +18,7 @@ class iperf3m_veth_udp_iptables(collection.Collection):
     variables = OrderedDict([
         ('iptables_rules_len', (0, 10, 100, 500, 1000)),
 
-        ('parallelism', (2, 4)),
+        ('parallelism', (1, 4, 6, 8)),
         ('iptables_type', ('stateless', 'stateful')),
     ])
 
@@ -31,8 +31,10 @@ class iperf3m_veth_udp_iptables(collection.Collection):
 
     def plot_style_fn(self, r, group_id):
         colors = {
-            2: 'blue',
+            1: 'black',
             4: 'green',
+            6: 'blue',
+            8: 'orange',
         }
         return {
             'linestyle': '--' if r['iptables_type'] == 'stateless' else '-',
