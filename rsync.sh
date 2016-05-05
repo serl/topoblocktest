@@ -7,4 +7,4 @@ if [ -z "$server_path" ]; then
     exit
 fi
 
-rsync --recursive --times --delete --progress "$server_path/results/" results/
+rsync --compress --recursive --times --delete --progress "$server_path/results/" results/
