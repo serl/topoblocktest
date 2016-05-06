@@ -16,6 +16,9 @@ python iperf3m_veth_udp_packetsize.py generate
 
 python iperf3m_veth_udp_iptables.py generate
 
+python iperf3m_chain_ns_netem_udp.py generate
+
+
 function find_stale {
     [ ! -z "$1" ] && delete=yes
     count=0
