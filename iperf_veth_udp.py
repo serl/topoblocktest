@@ -13,7 +13,7 @@ class iperf_veth_udp(collection.Collection):
 
         ('iperf_name', ('iperf2', 'iperf3', 'iperf3m')),
         ('disable_offloading', (False, True)),
-        ('packet_size', (65507, 1458, 36)),
+        ('packet_size', (65507, 32739, 1458, 36)),
         ('affinity', (False, True)),
     ])
 
@@ -29,6 +29,7 @@ class iperf_veth_udp(collection.Collection):
     filters = {
         'iperf3m': lambda r: r['iperf_name'] != 'iperf3m',
         'smallpackets': lambda r: r['packet_size'] > 36,
+        'rightsize': lambda r: r['packet_size'] != 32739,
     }
 
     def analysis_row_label_fn(self, r):
@@ -51,9 +52,9 @@ class iperf_veth_udp(collection.Collection):
         if r['affinity'] and r['zerocopy']:
             color = 'green'
 
-        marker = '^'
-        if r['packet_size'] == 65507:
-            marker = 's'
+        marker = 's'  # if r['packet_size'] == 65507
+        if r['packet_size'] == 32739:
+            marker = '^'
         elif r['packet_size'] == 1458:
             marker = 'o'
         elif r['packet_size'] == 36:

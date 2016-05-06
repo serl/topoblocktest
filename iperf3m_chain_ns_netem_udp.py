@@ -6,7 +6,6 @@ class iperf3m_chain_ns_netem_udp(collection.Collection):
     constants = {
         'iperf_name': 'iperf3m',
         'protocol': 'udp',
-        'topology': 'ns_chain_netem',
         'disable_offloading': False,
         'zerocopy': False,
         'affinity': False,
@@ -17,6 +16,7 @@ class iperf3m_chain_ns_netem_udp(collection.Collection):
     variables = OrderedDict([
         ('chain_len', (2, 3, 5, 10)),
 
+        ('topology', ('ns_chain', 'ns_chain_netem')),
         ('parallelism', (1, 4, 6, 8, 12)),
     ])
 
@@ -38,7 +38,7 @@ class iperf3m_chain_ns_netem_udp(collection.Collection):
         return "{} {parallelism} (pkt: {packet_size})".format(self.get_link_label(r), **r)
 
     def analysis_grouping_fn(self, r):
-        return (r['packet_size'],)
+        return (r['topology'] == 'ns_chain_netem',)
 
     def plot_style_fn(self, r, group_id):
         colors = {

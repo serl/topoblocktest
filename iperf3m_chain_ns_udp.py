@@ -15,7 +15,7 @@ class iperf3m_chain_ns_udp(collection.Collection):
         ('chain_len', (2, 3, 5, 10, 20)),
 
         ('parallelism', (1, 4, 6, 8, 12)),
-        ('packet_size', (65507, 36)),
+        ('packet_size', (65507, 32739, 36)),
         ('use_ovs', (False, True)),
         ('ovs_ns_links', ('port', 'veth')),
     ])
@@ -27,6 +27,10 @@ class iperf3m_chain_ns_udp(collection.Collection):
     x_axis = 'chain_len'
     y_axes = ['throughput', 'packetput', 'cpu']
     x_title = 'number of namespaces'
+
+    filters = {
+        'rightsize': lambda r: r['packet_size'] != 32739,
+    }
 
     def get_link_label(self, r):
         link_label = 'direct-veth'
