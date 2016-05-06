@@ -20,6 +20,8 @@ class iperf_veth_udp(collection.Collection):
     def generation_skip_fn(self, settings):
         if settings['iperf_name'] == 'iperf2' and (settings['zerocopy'] or settings['affinity']):
             return True
+        if settings['iperf_name'] != 'iperf3m' and settings['packet_size'] == 32739:
+            return True
         return False
 
     x_axis = 'parallelism'
