@@ -12,6 +12,7 @@ class Collection:
     filters = {}  # name => skip_fn
 
     def __init__(self):
+        self.__custom_filters = []
         if not len(self.constants) or not len(self.variables):
             raise ValueError('One attribute between `constants` and `variables` is required.')
 
@@ -55,8 +56,8 @@ class Collection:
             db_query = [r for r in db_query if r[key] == value]
         for key, values in self.variables.items():
             db_query = [r for r in db_query if r[key] in values]
-        if hasattr(self, 'custom_filter'):
-            db_query = [r for r in db_query if not self.custom_filter(r)]
+        for fil in self.__custom_filters:
+            db_query = [r for r in db_query if not fil(r)]
         return analyze.get_analysis_table(db_query, self.x_axis, self.analysis_row_info_fn, self.analysis_grouping_fn)
 
     def csv(self):
@@ -89,11 +90,9 @@ class Collection:
         parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('action', choices=('generate', 'csv', 'plot'), default='plot', nargs='?', help='action to take')
         if len(self.filters) > 0:
-            parser.add_argument('--filter', choices=self.filters.keys(), help='use a predefined filter to read less data (depends on the collection). Does not work for `generate`.')
+            parser.add_argument('--filter', choices=self.filters.keys(), nargs='+', help='use a predefined filter to read less data (depends on the collection). Does not work for `generate`.')
         args = parser.parse_args()
-        try:
-            if args.filter is not None:
-                self.custom_filter = self.filters[args.filter]
-        except AttributeError:
-            pass
+        if hasattr(args, 'filter') and args.filter is not None:
+            for filtername in args.filter:
+                self.__custom_filters.append(self.filters[filtername])
         getattr(self, args.action)()
