@@ -35,11 +35,12 @@ function find_stale {
     [ ! "$delete" ] && echo $count
 }
 
+echo
+echo -n "Checking for stale experiments... "
 count_stale=$(find_stale)
+echo "found $count_stale."
 [ "$count_stale" == 0 ] && exit
 
-echo
-echo "I found $count_stale stale experiments."
 read -p "Should I delete them? " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
