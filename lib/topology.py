@@ -26,6 +26,16 @@ class Entity:
         master.entities.append(self)
         return self  # chaining ;)
 
+    @property
+    def endpoints(self):
+        endpoints = []
+        for l in self.links:
+            if l.e1.entity == self:
+                endpoints.append(l.e1)
+            if l.e2.entity == self:
+                endpoints.append(l.e2)
+        return endpoints
+
     @add_comment('creating')
     def create(self):
         self.check_configuration()
