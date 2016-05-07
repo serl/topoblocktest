@@ -1,8 +1,9 @@
 import lib.collection as collection
 from collections import OrderedDict
+import re
 
 
-class iperf3m_chain_ns_netem_udp(collection.Collection):
+class iperf3m_chain_ns_qdisc_udp(collection.Collection):
     constants = {
         'iperf_name': 'iperf3m',
         'protocol': 'udp',
@@ -16,7 +17,7 @@ class iperf3m_chain_ns_netem_udp(collection.Collection):
     variables = OrderedDict([
         ('chain_len', (2, 3, 5, 10)),
 
-        ('topology', ('ns_chain', 'ns_chain_netem')),
+        ('topology', ('ns_chain', 'ns_chain_qdisc_netem', 'ns_chain_qdisc_htb')),
         ('parallelism', (1, 4, 6, 8, 12)),
     ])
 
@@ -35,10 +36,14 @@ class iperf3m_chain_ns_netem_udp(collection.Collection):
         return link_label
 
     def analysis_row_label_fn(self, r):
-        return "{} {parallelism} (pkt: {packet_size})".format(self.get_link_label(r), **r)
+        qdisc_label = ''
+        if r['topology'].startswith('ns_chain_qdisc_'):
+            qdisc_label = re.sub('^ns_chain_qdisc_', '', r['topology'])
+        return "{} {parallelism} {} (pkt: {packet_size})".format(self.get_link_label(r), qdisc_label, **r)
 
     def analysis_grouping_fn(self, r):
-        return (r['topology'] == 'ns_chain_netem',)
+        topo_names = ['ns_chain', 'ns_chain_qdisc_netem', 'ns_chain_qdisc_htb']
+        return (topo_names.index(r['topology']),)
 
     def plot_style_fn(self, r, group_id):
         colors = {
@@ -64,4 +69,4 @@ class iperf3m_chain_ns_netem_udp(collection.Collection):
 
 
 if __name__ == '__main__':
-    iperf3m_chain_ns_netem_udp().parse_shell_arguments()
+    iperf3m_chain_ns_qdisc_udp().parse_shell_arguments()

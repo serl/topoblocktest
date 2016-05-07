@@ -146,14 +146,28 @@ ns_chain_iptables.arguments['iptables_type'] = {'default': 'stateless', 'choices
 ns_chain_iptables.arguments['iptables_rules_len'] = {'type': int, 'default': 0, 'help': 'number of useless iptables rules to inject'}
 
 
-def ns_chain_netem(disable_offloading=False, **settings):
+def ns_chain_qdisc(qdisc, disable_offloading=False, **settings):
     m, nss, base_net = unrouted_ns_chain(disable_offloading, **settings)
     ns_chain_add_routing(m, nss, base_net)
 
     m.get_script()  # look, I'm hacking my code! (this will force autogeneration of endpoint names)
     for ns in nss:
         for endpoint in ns.endpoints:
-            ns.add_configure_command('tc -s qdisc replace dev {} root netem rate 4294967295bps limit 200 2>&1'.format(endpoint.name))
+            # 4294967295 is the maximum unsigned 32bit int (should fit on tc, according to docs)
+            if qdisc == 'netem':
+                ns.add_configure_command('tc qdisc replace dev {} root netem rate 4294967295bps limit 500000 2>&1'.format(endpoint.name))
+            elif qdisc == 'htb':
+                ns.add_configure_command('tc qdisc replace dev {} root handle 1: htb default 1 2>&1'.format(endpoint.name))
+                ns.add_configure_command('tc class replace dev {} parent 1: classid 1:1 htb rate 4294967295bps burst 4294967295b 2>&1'.format(endpoint.name))
 
     return (m, nss[0], nss[-1])
-ns_chain_netem.arguments = ns_chain.arguments.copy()
+
+
+def ns_chain_qdisc_netem(disable_offloading=False, **settings):
+    return ns_chain_qdisc('netem', disable_offloading, **settings)
+ns_chain_qdisc_netem.arguments = ns_chain.arguments.copy()
+
+
+def ns_chain_qdisc_htb(disable_offloading=False, **settings):
+    return ns_chain_qdisc('htb', disable_offloading, **settings)
+ns_chain_qdisc_htb.arguments = ns_chain.arguments.copy()
