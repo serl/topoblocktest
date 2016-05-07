@@ -8,7 +8,6 @@ class iperf3m_chain_ovs_tcp(collection.Collection):
         'protocol': 'tcp',
         'packet_size': 'default',
         'topology': 'ovs_chain',
-        'ovs_ns_links': 'port',
         'affinity': False,
     }
     variables = OrderedDict([
@@ -18,6 +17,7 @@ class iperf3m_chain_ovs_tcp(collection.Collection):
         ('parallelism', (1, 4, 6, 8, 12)),
         ('zerocopy', (False, True)),
         ('ovs_ovs_links', ('patch', 'veth')),
+        ('ovs_ns_links', ('port', 'veth')),
     ])
 
     def generation_skip_fn(self, settings):
