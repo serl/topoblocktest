@@ -28,6 +28,10 @@ class iperf3m_chain_ovs_tcp(collection.Collection):
     y_axes = ['throughput', 'cpu']
     x_title = 'number of OVS bridges'
 
+    filters = {
+        'no-veth': lambda r: r['ovs_ns_links'] == 'veth',
+    }
+
     def get_link_label(self, r):
         return '{ovs_ovs_links}-{ovs_ns_links}'.format(**r)
 
