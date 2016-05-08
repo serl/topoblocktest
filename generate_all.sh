@@ -18,6 +18,7 @@ python iperf3m_veth_udp_iptables.py generate
 
 python iperf3m_chain_ns_qdisc_udp.py generate
 
+python iperf3m_chain_ns_iptables_udp.py generate
 
 function find_stale {
     [ ! -z "$1" ] && delete=yes
