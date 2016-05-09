@@ -26,6 +26,10 @@ class iperf_veth_tcp(collection.Collection):
     y_axes = ['throughput', 'cpu']
     x_title = 'parallelism'
 
+    filters = {
+        'iperf3m': lambda r: r['iperf_name'] != 'iperf3m',
+    }
+
     def analysis_row_label_fn(self, r):
         zcpyaff_label_list = []
         for name in ('zerocopy', 'affinity'):
@@ -34,8 +38,9 @@ class iperf_veth_tcp(collection.Collection):
         return "{iperf_name} {}offloading, pkt: {packet_size} {}".format('no ' if r['disable_offloading'] else '', ', '.join(zcpyaff_label_list), **r)
 
     def analysis_grouping_fn(self, r):
-        iperf_names = ['iperf2', 'iperf3', 'iperf3m']
-        return (iperf_names.index(r['iperf_name']),)
+        iperf_names = list(self.variables['iperf_name'])
+        packet_sizes = list(self.variables['packet_size'])
+        return (iperf_names.index(r['iperf_name']) * len(packet_sizes) + packet_sizes.index(r['packet_size']),)
 
     def plot_style_fn(self, r, group_id):
         color = 'black'
@@ -46,15 +51,9 @@ class iperf_veth_tcp(collection.Collection):
         if r['affinity'] and r['zerocopy']:
             color = 'green'
 
-        if r['packet_size'] == 'default':
-            marker = 's'
-        elif r['packet_size'] == 536:
-            marker = '^'
-
         return {
             'linestyle': '--' if r['disable_offloading'] else '-',
             'color': color,
-            'marker': marker,
         }
 
 

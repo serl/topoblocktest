@@ -42,7 +42,7 @@ class iperf3m_chain_ns_qdisc_udp(collection.Collection):
         return "{} {parallelism} {} (pkt: {packet_size})".format(self.get_link_label(r), qdisc_label, **r)
 
     def analysis_grouping_fn(self, r):
-        topo_names = ['ns_chain', 'ns_chain_qdisc_netem', 'ns_chain_qdisc_htb']
+        topo_names = list(self.variables['topology'])
         return (topo_names.index(r['topology']),)
 
     def plot_style_fn(self, r, group_id):

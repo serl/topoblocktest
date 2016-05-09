@@ -42,7 +42,7 @@ class iperf_veth_udp(collection.Collection):
         return "{iperf_name} {}offloading, pkt: {packet_size} {}".format('no ' if r['disable_offloading'] else '', ', '.join(zcpyaff_label_list), **r)
 
     def analysis_grouping_fn(self, r):
-        iperf_names = ['iperf2', 'iperf3', 'iperf3m']
+        iperf_names = list(self.variables['iperf_name'])
         return (iperf_names.index(r['iperf_name']),)
 
     def plot_style_fn(self, r, group_id):
