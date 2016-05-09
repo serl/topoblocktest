@@ -13,6 +13,7 @@ class Collection:
 
     def __init__(self):
         self.__custom_filters = []
+        self.reference = {}
         if not len(self.constants) or not len(self.variables):
             raise ValueError('One attribute between `constants` and `variables` is required.')
 
@@ -46,22 +47,41 @@ class Collection:
     def generate(self):
         return test_master.generate_combinations(self.constants, self.variables, self.generation_skip_fn)
 
-    def __analyze(self):
+    def analyze(self):
         if self.x_axis is None:
             raise ValueError('For analysis purposes, the `x_axis` attribute is required.')
 
         db = test_master.get_results_db()
-        db_query = db
+        self.__db_query = db
         for key, value in self.constants.items():
-            db_query = [r for r in db_query if r[key] == value]
+            self.__db_query = [r for r in self.__db_query if r[key] == value]
         for key, values in self.variables.items():
-            db_query = [r for r in db_query if r[key] in values]
+            self.__db_query = [r for r in self.__db_query if r[key] in values]
         for fil in self.__custom_filters:
-            db_query = [r for r in db_query if not fil(r)]
-        return analyze.get_analysis_table(db_query, self.x_axis, self.analysis_row_info_fn, self.analysis_grouping_fn)
+            self.__db_query = [r for r in self.__db_query if not fil(r)]
+        return analyze.get_analysis_table(self.__db_query, self.x_axis, self.analysis_row_info_fn, self.analysis_grouping_fn)
+
+    def is_relative(self):
+        return len(self.reference) > 0
+
+    def get_reference_row(self, r):
+        remove_keys = ('__id__', '__version__', 'hash', 'iperf_result', 'iostat_cpu')
+        query = self.__db_query
+        for key in r.keys():
+            if key in remove_keys or r[key] is None:
+                continue
+            value = r[key]
+            if key in self.reference:
+                value = self.reference[key]
+            query = [r for r in query if r[key] == value]
+        if len(query) > 1:
+            raise ValueError('Something bad happened :(')
+        if len(query) == 0:
+            return None
+        return query[0]
 
     def csv(self):
-        cols, rows, rows_grouped = self.__analyze()
+        cols, rows, rows_grouped = self.analyze()
         data_header = 'label,' + ',,'.join(map(str, cols)) + ','
         throughput_values = ''
         cpu_values = ''
@@ -82,8 +102,7 @@ class Collection:
         print(fairness_values)
 
     def plot(self):
-        cols, rows, rows_grouped = self.__analyze()
-        plot.dynamic(cols, rows_grouped, self.y_axes, self.x_title, self.__class__.__name__, self.plot_style_fn)
+        plot.dynamic(self)
 
     def parse_shell_arguments(self):
         import argparse
@@ -91,8 +110,46 @@ class Collection:
         parser.add_argument('action', choices=('generate', 'csv', 'plot'), default='plot', nargs='?', help='action to take')
         if len(self.filters) > 0:
             parser.add_argument('--filter', choices=self.filters.keys(), nargs='+', help='use a predefined filter to read less data (depends on the collection). Does not work for `generate`.')
+        parser.add_argument('--relative-to', nargs='+', metavar='attribute=value', help='output relative values instead of absolute. Must specify values in the form "attribute=value", for example "parallelism=1"')
         args = parser.parse_args()
+
         if hasattr(args, 'filter') and args.filter is not None:
             for filtername in args.filter:
                 self.__custom_filters.append(self.filters[filtername])
+
+        if args.relative_to is not None:
+            for ref in args.relative_to:
+                # check the form
+                try:
+                    attr_name, attr_value = ref.split('=', 1)
+                except ValueError:
+                    raise ValueError("is '{}' in the form attribute=value?".format(ref))
+
+                # check the existence of the attribute
+                if attr_name not in self.variables:
+                    raise ValueError("'{}' is not in the 'variables', using it as a reference would have no useful effects".format(attr_name))
+
+                # check the value, cast if necessary
+                found = False
+                for good_value in self.variables[attr_name]:
+                    if type(good_value) == type(1):
+                        casted_value = int(attr_value)
+                    elif type(good_value) == type(1.0):
+                        casted_value = float(attr_value)
+                    elif type(good_value) == type(True):
+                        if attr_value == 'True':
+                            casted_value = True
+                        elif attr_value == 'False':
+                            casted_value = False
+                        else:
+                            raise ValueError("could not convert string to bool: '{}'".format(attr_value))
+                    found = (casted_value == good_value)
+                    if found:
+                        attr_value = casted_value
+                        break
+                if not found:
+                    raise ValueError('"{}" is not an acceptable value for "{}". Good values are: {}.'.format(attr_value, attr_name, self.variables[attr_name]))
+
+                self.reference[attr_name] = attr_value
+
         getattr(self, args.action)()
