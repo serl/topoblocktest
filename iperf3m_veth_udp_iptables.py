@@ -24,7 +24,7 @@ class iperf3m_veth_udp_iptables(collection.Collection):
 
     x_axis = 'iptables_rules_len'
     y_axes = ['throughput', 'packetput', 'cpu']
-    x_title = 'number of rules'
+    x_title = 'number of iptables rules'
 
     def analysis_row_label_fn(self, r):
         return "{iperf_name} ({parallelism} flows, {}offloading) {protocol} {iptables_type} rules.".format('no ' if r['disable_offloading'] else '', **r)

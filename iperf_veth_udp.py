@@ -26,7 +26,7 @@ class iperf_veth_udp(collection.Collection):
 
     x_axis = 'parallelism'
     y_axes = ['throughput', 'packetput', 'cpu']
-    x_title = 'parallelism'
+    x_title = '# of parallel flows'
 
     filters = {
         'iperf3m': lambda r: r['iperf_name'] != 'iperf3m',

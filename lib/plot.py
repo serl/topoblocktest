@@ -93,7 +93,7 @@ class ThroughputAx(YAx):
 
     def format_ax(self, ax):
         if self.is_relative:
-            ax.set_ylabel('throughput (% loss relative to ref)')
+            ax.set_ylabel('throughput (% gain relative to ref)')
         else:
             ax.yaxis.set_major_formatter(PrefixFormatter())
             ax.set_ylabel('throughput (b/s)')
@@ -110,7 +110,7 @@ class CpuAx(YAx):
 
     def format_ax(self, ax):
         if self.is_relative:
-            ax.set_ylabel('cpu utilization (% loss relative to ref)')
+            ax.set_ylabel('cpu utilization (% gain relative to ref)')
         else:
             ax.set_ylabel('cpu utilization (%)')
             ax.axis([None, None, 0, 102])
@@ -127,7 +127,7 @@ class PacketputAx(YAx):
 
     def format_ax(self, ax):
         if self.is_relative:
-            ax.set_ylabel('throughput (% loss relative to ref)')
+            ax.set_ylabel('throughput (% gain relative to ref)')
         else:
             ax.yaxis.set_major_formatter(PrefixFormatter())
             ax.set_ylabel('throughput (pps)')
