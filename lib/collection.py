@@ -132,6 +132,7 @@ class Collection:
                 # check the value, cast if necessary
                 found = False
                 for good_value in self.variables[attr_name]:
+                    casted_value = attr_value
                     if type(good_value) == type(1):
                         casted_value = int(attr_value)
                     elif type(good_value) == type(1.0):
