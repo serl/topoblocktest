@@ -29,6 +29,9 @@ class iperf3m_chain_ns_iptables_udp(collection.Collection):
     def analysis_row_label_fn(self, r):
         return "{iperf_name} ({parallelism} flows, {}offloading) {protocol} {iptables_rules_len} {iptables_type} rules.".format('no ' if r['disable_offloading'] else '', **r)
 
+    def analysis_grouping_fn(self, r):
+        return (r['iptables_rules_len'],)
+
     def plot_style_fn(self, r, group_id):
         colors = {
             1: 'black',
