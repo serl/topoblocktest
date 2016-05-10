@@ -8,7 +8,6 @@ class iperf3m_veth_udp_packetsize(collection.Collection):
         'iperf_name': 'iperf3m',
         'topology': 'direct_veth',
         'zerocopy': False,
-        'affinity': False,
     }
     variables = OrderedDict([
         ('packet_size', tuple([2048 * (m + 1) - 29 for m in range(0, 32)])),
