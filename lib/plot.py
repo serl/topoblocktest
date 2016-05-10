@@ -159,7 +159,7 @@ class PrefixFormatter(matplotlib.ticker.Formatter):
         return self.__cache[locs_tuple][pos]
 
 
-def dynamic(collection):
+def dynamic(collection, export=None):
     columns, rows, rows_grouped = collection.analyze()
     y_axes = collection.y_axes
     window_title = collection.__class__.__name__
@@ -174,9 +174,9 @@ def dynamic(collection):
             y_axes[i] = YAx.get_instance(y_ax, collection.is_relative())
     # import
     from collections import OrderedDict
-    plt = import_matplotlib_pyplot()
+    plt = import_matplotlib_pyplot(interactive=(export is None))
 
-    fig, all_axes = plt.subplots(len(rows_grouped), len(y_axes), sharex=True)
+    fig, all_axes = plt.subplots(len(rows_grouped), len(y_axes), sharex=(export is None))
     fig.canvas.set_window_title(window_title)
     if len(rows_grouped) == 1:
         all_axes = (all_axes,)
@@ -245,5 +245,9 @@ def dynamic(collection):
                 togglable_legend.add(legline, origlines)
         row_id += 1
 
-    plt.subplots_adjust(left=0.05, right=0.82, top=0.95, bottom=0.1)
-    plt.show()
+    if export is not None:
+        fig.set_size_inches(len(y_axes) * 7.5, len(rows_grouped) * 4)
+        fig.savefig(export, bbox_inches='tight')
+    else:
+        plt.subplots_adjust(left=0.05, right=0.82, top=0.95, bottom=0.1)
+        plt.show()

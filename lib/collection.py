@@ -102,13 +102,14 @@ class Collection:
         print(data_header)
         print(fairness_values)
 
-    def plot(self):
-        plot.dynamic(self)
+    def plot(self, export=None):
+        plot.dynamic(self, export)
 
     def parse_shell_arguments(self):
         import argparse
         parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('action', choices=('generate', 'csv', 'plot'), default='plot', nargs='?', help='action to take')
+        parser.add_argument('--out', help='redirect the output to file')
         if len(self.filters) > 0:
             parser.add_argument('--filter', choices=self.filters.keys(), nargs='+', help='use a predefined filter to read less data (depends on the collection). Does not work for `generate`.')
         parser.add_argument('--relative-to', nargs='+', metavar='attribute=value', help='output relative values instead of absolute. Must specify values in the form "attribute=value", for example "parallelism=1"')
@@ -154,4 +155,8 @@ class Collection:
 
                 self.reference[attr_name] = attr_value
 
-        getattr(self, args.action)()
+        action_kwargs = {}
+        if args.out is not None:
+            action_kwargs['export'] = args.out
+
+        getattr(self, args.action)(**action_kwargs)
