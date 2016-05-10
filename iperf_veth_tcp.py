@@ -28,6 +28,8 @@ class iperf_veth_tcp(collection.Collection):
 
     filters = {
         'iperf3m': lambda r: r['iperf_name'] != 'iperf3m',
+        'rightsize': lambda r: r['packet_size'] != 'default',
+        'paper': lambda r: r['iperf_name'] != 'iperf3m' or r['packet_size'] != 'default' or r['affinity'] or r['disable_offloading'],
     }
 
     def analysis_row_label_fn(self, r):
