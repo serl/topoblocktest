@@ -216,7 +216,7 @@ def dynamic(collection, export=None):
                         if not isinstance(ref_value_error, tuple):
                             ref_value_error = (ref_value_error, 0)
                         plot_values[y_ax_index].append((value_error[0] - ref_value_error[0]) * 100 / ref_value_error[0])
-                        plot_errors[y_ax_index].append(0)  # think a way to calculate it
+                        plot_errors[y_ax_index].append((value_error[1] + ref_value_error[1]) * 100 / ref_value_error[0])
                     else:
                         plot_values[y_ax_index].append(value_error[0])
                         plot_errors[y_ax_index].append(value_error[1])
