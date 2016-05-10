@@ -25,10 +25,10 @@ class iperf3m_veth_udp_packetsize(collection.Collection):
     x_title = 'packet size (B)'
 
     def analysis_row_label_fn(self, r):
-        return "{iperf_name} ({parallelism} flows, {}offloading) {protocol}".format('no ' if r['disable_offloading'] else '', **r)
+        return "{iperf_name} ({parallelism} flows, {}offloading{}) {protocol}".format('no ' if r['disable_offloading'] else '', ', affinity' if r['affinity'] else '', **r)
 
     def analysis_grouping_fn(self, r):
-        return (r['disable_offloading'],)
+        return (r['affinity'] + 2 * r['disable_offloading'],)
 
     def plot_style_fn(self, r, group_id):
         colors = {
