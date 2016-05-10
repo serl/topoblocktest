@@ -24,6 +24,10 @@ class iperf3m_veth_udp_packetsize(collection.Collection):
     y_axes = ['throughput', 'packetput', 'cpu']
     x_title = 'packet size (B)'
 
+    filters = {
+        'paper': lambda r: r['affinity'] or r['disable_offloading'] or r['parallelism'] not in (1, 4, 6, 8),
+    }
+
     def analysis_row_label_fn(self, r):
         return "{iperf_name} ({parallelism} flows, {}offloading{}) {protocol}".format('no ' if r['disable_offloading'] else '', ', affinity' if r['affinity'] else '', **r)
 
@@ -36,9 +40,9 @@ class iperf3m_veth_udp_packetsize(collection.Collection):
             3: 'blue',
             4: 'green',
             5: 'purple',
-            6: 'cyan',
+            6: 'red',
             8: 'orange',
-            12: 'red',
+            12: 'cyan',
             24: 'yellow',
         }
         linestyle = '-'
