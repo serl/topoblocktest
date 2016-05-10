@@ -57,6 +57,7 @@ class Collection:
             self.__db_query = [r for r in self.__db_query if r[key] == value]
         for key, values in self.variables.items():
             self.__db_query = [r for r in self.__db_query if r[key] in values]
+        self.__db_query = [r for r in self.__db_query if not self.generation_skip_fn(r)]
         for fil in self.__custom_filters:
             self.__db_query = [r for r in self.__db_query if not fil(r)]
         return analyze.get_analysis_table(self.__db_query, self.x_axis, self.analysis_row_info_fn, self.analysis_grouping_fn)
