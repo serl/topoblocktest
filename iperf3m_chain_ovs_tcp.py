@@ -30,6 +30,7 @@ class iperf3m_chain_ovs_tcp(collection.Collection):
 
     filters = {
         'no-veth': lambda r: r['ovs_ns_links'] == 'veth',
+        'paper': lambda r: r['disable_offloading'],
     }
 
     def get_link_label(self, r):
