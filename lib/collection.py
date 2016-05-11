@@ -87,11 +87,30 @@ class Collection:
         throughput_values = ''
         cpu_values = ''
         fairness_values = ''
+
+        def get_valuerr(y_ax, r):
+            if y_ax == 'throughput':
+                return r['iperf_result']['throughput']
+            elif y_ax == 'cpu':
+                return r['iostat_cpu']['idle']
+            elif y_ax == 'fairness':
+                return r['iperf_result']['fairness'] if 'fairness' in r['iperf_result'] else ''
+
+        if self.is_relative():
+            _under_get_valuerr = get_valuerr
+
+            def get_valuerr(y_ax, r):
+                ref_r = self.get_reference_row(r)
+                value_error = _under_get_valuerr(y_ax, r)
+                ref_value_error = _under_get_valuerr(y_ax, ref_r)
+                return ((value_error[0] - ref_value_error[0]) * 100 / ref_value_error[0], (value_error[1] + ref_value_error[1]) * 100 / ref_value_error[0])
+
         for label, rowdetails in rows.items():
             values = rowdetails['row']
-            throughput_values += '"{}",{}\n'.format(label, ','.join([','.join(map(str, v['iperf_result']['throughput'])) if v is not None else ',' for v in values]))
-            cpu_values += '"{}",{}\n'.format(label, ','.join([','.join(map(str, v['iostat_cpu']['idle'])) if v is not None else ',' for v in values]))
-            fairness_values += '"{}",{}\n'.format(label, ','.join([','.join(map(str, v['iperf_result']['fairness'] if 'fairness' in v['iperf_result'] else '')) if v is not None else ',' for v in values]))
+            throughput_values += '"{}",{}\n'.format(label, ','.join([','.join(map(str, get_valuerr('throughput', v))) if v is not None else ',' for v in values]))
+            cpu_values += '"{}",{}\n'.format(label, ','.join([','.join(map(str, get_valuerr('cpu', v))) if v is not None else ',' for v in values]))
+            fairness_values += '"{}",{}\n'.format(label, ','.join([','.join(map(str, get_valuerr('fairness', v))) if v is not None else ',' for v in values]))
+
         print('throughput')
         print(data_header)
         print(throughput_values)
