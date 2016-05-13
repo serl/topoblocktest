@@ -26,8 +26,12 @@ class iperf3m_chain_ns_iptables_udp(collection.Collection):
     y_axes = ['throughput', 'packetput', 'cpu']
     x_title = 'number of namespaces'
 
+    filters = {
+        'paper': lambda r: r['iptables_type'] != 'stateful',
+    }
+
     def analysis_row_label_fn(self, r):
-        return "{iperf_name} ({parallelism} flows, {}offloading) {protocol} {iptables_rules_len} {iptables_type} rules.".format('no ' if r['disable_offloading'] else '', **r)
+        return "{parallelism} {protocol} flows, {iptables_rules_len} {iptables_type} rules {}".format(', no offloading' if r['disable_offloading'] else '', **r)
 
     def analysis_grouping_fn(self, r):
         return (r['iptables_rules_len'],)
@@ -36,7 +40,7 @@ class iperf3m_chain_ns_iptables_udp(collection.Collection):
         colors = {
             1: 'black',
             4: 'green',
-            6: 'blue',
+            6: 'red',
             8: 'orange',
         }
         return {

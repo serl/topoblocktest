@@ -27,13 +27,13 @@ class iperf3m_veth_udp_iptables(collection.Collection):
     x_title = 'number of iptables rules'
 
     def analysis_row_label_fn(self, r):
-        return "{iperf_name} ({parallelism} flows, {}offloading) {protocol} {iptables_type} rules.".format('no ' if r['disable_offloading'] else '', **r)
+        return "{parallelism} {protocol} flows, {iptables_type} rules {}".format(', no offloading' if r['disable_offloading'] else '', **r)
 
     def plot_style_fn(self, r, group_id):
         colors = {
             1: 'black',
             4: 'green',
-            6: 'blue',
+            6: 'red',
             8: 'orange',
         }
         return {

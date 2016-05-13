@@ -36,10 +36,10 @@ class iperf3m_chain_ns_qdisc_udp(collection.Collection):
         return link_label
 
     def analysis_row_label_fn(self, r):
-        qdisc_label = ''
+        qdisc_label = 'pfifo_fast'
         if r['topology'].startswith('ns_chain_qdisc_'):
             qdisc_label = re.sub('^ns_chain_qdisc_', '', r['topology'])
-        return "{} {parallelism} {} (pkt: {packet_size})".format(self.get_link_label(r), qdisc_label, **r)
+        return "{parallelism} {protocol} flows, {}{}".format(qdisc_label, ', no offloading' if r['disable_offloading'] else '', **r)
 
     def analysis_grouping_fn(self, r):
         topo_names = list(self.variables['topology'])
@@ -47,24 +47,15 @@ class iperf3m_chain_ns_qdisc_udp(collection.Collection):
 
     def plot_style_fn(self, r, group_id):
         colors = {
-            'direct-veth': 'purple',
-            'ovs-port': 'green',
-            'ovs-veth': 'black',
+            1: 'black',
+            4: 'green',
+            6: 'red',
+            8: 'orange',
+            12: 'blue',
         }
-        if r['parallelism'] == 1:
-            marker = 's'
-        elif r['parallelism'] == 4:
-            marker = '^'
-        elif r['parallelism'] == 6:
-            marker = 'v'
-        elif r['parallelism'] == 8:
-            marker = 'o'
-        elif r['parallelism'] == 12:
-            marker = '.'
         return {
-            'color': colors[self.get_link_label(r)],
-            'linestyle': '--' if r['disable_offloading'] else '-',
-            'marker': marker,
+            'linestyle': '--' if r['iptables_type'] == 'stateless' else '-',
+            'color': colors[r['parallelism']],
         }
 
 
