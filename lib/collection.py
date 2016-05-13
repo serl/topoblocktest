@@ -86,6 +86,7 @@ class Collection:
         data_header = 'label,' + ',,'.join(map(str, cols)) + ','
         throughput_values = ''
         cpu_values = ''
+        iowait_values = ''
         fairness_values = ''
 
         def get_valuerr(y_ax, r):
@@ -93,6 +94,8 @@ class Collection:
                 return r['iperf_result']['throughput']
             elif y_ax == 'cpu':
                 return r['iostat_cpu']['idle']
+            elif y_ax == 'iowait':
+                return r['iostat_cpu']['iowait']
             elif y_ax == 'fairness':
                 return r['iperf_result']['fairness'] if 'fairness' in r['iperf_result'] else ''
 
@@ -109,6 +112,7 @@ class Collection:
             values = rowdetails['row']
             throughput_values += '"{}",{}\n'.format(label, ','.join([','.join(map(str, get_valuerr('throughput', v))) if v is not None else ',' for v in values]))
             cpu_values += '"{}",{}\n'.format(label, ','.join([','.join(map(str, get_valuerr('cpu', v))) if v is not None else ',' for v in values]))
+            iowait_values += '"{}",{}\n'.format(label, ','.join([','.join(map(str, get_valuerr('iowait', v))) if v is not None else ',' for v in values]))
             fairness_values += '"{}",{}\n'.format(label, ','.join([','.join(map(str, get_valuerr('fairness', v))) if v is not None else ',' for v in values]))
 
         print('throughput')
@@ -117,6 +121,9 @@ class Collection:
         print('cpu idle')
         print(data_header)
         print(cpu_values)
+        print('cpu iowait')
+        print(data_header)
+        print(iowait_values)
         print('fairness')
         print(data_header)
         print(fairness_values)
