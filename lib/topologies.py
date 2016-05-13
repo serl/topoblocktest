@@ -146,29 +146,44 @@ ns_chain_iptables.arguments['iptables_type'] = {'default': 'stateless', 'choices
 ns_chain_iptables.arguments['iptables_rules_len'] = {'type': int, 'default': 0, 'help': 'number of useless iptables rules to inject'}
 
 
-def ns_chain_qdisc(qdisc, disable_offloading=False, **settings):
+def ns_chain_qdisc(qdisc, tera, disable_offloading=False, **settings):
     m, nss, base_net = unrouted_ns_chain(disable_offloading, **settings)
     ns_chain_add_routing(m, nss, base_net)
+
+    # 4294967295 is the maximum unsigned 32bit int (should fit on tc, according to docs)
+    limit = 4294967295 if not tera else 10**12 / 8
 
     m.get_script()  # look, I'm hacking my code! (this will force autogeneration of endpoint names)
     for ns in nss:
         for endpoint in ns.endpoints:
-            # 4294967295 is the maximum unsigned 32bit int (should fit on tc, according to docs)
             if qdisc == 'netem':
-                # 131072 is 4294967295 bytes / 32KB => the limit/burst is the same for netem and htb, for 32KB packets
-                ns.add_configure_command('tc qdisc replace dev {} root netem rate 4294967295bps limit 131072 2>&1'.format(endpoint.name))
+                packet_size = settings['packet_size']
+                if packet_size == 'default':
+                    packet_size = 2**16  # jumbo packets
+                limit_burst = int(round(limit / (packet_size + 29), 0))  # to be fair with HTB, this should be the same (netem takes packets instead of bytes)
+                ns.add_configure_command('tc qdisc replace dev {} root netem rate {}bps limit {} 2>&1'.format(endpoint.name, limit, limit_burst))
             elif qdisc == 'htb':
                 ns.add_configure_command('tc qdisc replace dev {} root handle 1: htb default 1 2>&1'.format(endpoint.name))
-                ns.add_configure_command('tc class replace dev {} parent 1: classid 1:1 htb rate 4294967295bps burst 4294967295b 2>&1'.format(endpoint.name))
+                ns.add_configure_command('tc class replace dev {0} parent 1: classid 1:1 htb rate {1}bps burst {1}b 2>&1'.format(endpoint.name, limit))
 
     return (m, nss[0], nss[-1])
 
 
 def ns_chain_qdisc_netem(disable_offloading=False, **settings):
-    return ns_chain_qdisc('netem', disable_offloading, **settings)
+    return ns_chain_qdisc('netem', False, disable_offloading, **settings)
 ns_chain_qdisc_netem.arguments = ns_chain.arguments.copy()
 
 
 def ns_chain_qdisc_htb(disable_offloading=False, **settings):
-    return ns_chain_qdisc('htb', disable_offloading, **settings)
+    return ns_chain_qdisc('htb', False, disable_offloading, **settings)
+ns_chain_qdisc_htb.arguments = ns_chain.arguments.copy()
+
+
+def ns_chain_qdisc_netem_tera(disable_offloading=False, **settings):
+    return ns_chain_qdisc('netem', True, disable_offloading, **settings)
+ns_chain_qdisc_netem.arguments = ns_chain.arguments.copy()
+
+
+def ns_chain_qdisc_htb_tera(disable_offloading=False, **settings):
+    return ns_chain_qdisc('htb', True, disable_offloading, **settings)
 ns_chain_qdisc_htb.arguments = ns_chain.arguments.copy()

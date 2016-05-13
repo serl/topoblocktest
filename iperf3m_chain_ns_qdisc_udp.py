@@ -17,7 +17,7 @@ class iperf3m_chain_ns_qdisc_udp(collection.Collection):
     variables = OrderedDict([
         ('chain_len', (2, 3, 5, 10)),
 
-        ('topology', ('ns_chain', 'ns_chain_qdisc_netem', 'ns_chain_qdisc_htb')),
+        ('topology', ('ns_chain', 'ns_chain_qdisc_netem', 'ns_chain_qdisc_htb', 'ns_chain_qdisc_netem_tera', 'ns_chain_qdisc_htb_tera')),
         ('parallelism', (1, 4, 6, 8, 12)),
     ])
 
@@ -38,7 +38,7 @@ class iperf3m_chain_ns_qdisc_udp(collection.Collection):
     def analysis_row_label_fn(self, r):
         qdisc_label = 'pfifo_fast'
         if r['topology'].startswith('ns_chain_qdisc_'):
-            qdisc_label = re.sub('^ns_chain_qdisc_', '', r['topology'])
+            qdisc_label = re.sub('^ns_chain_qdisc_', '', r['topology']).replace('_', ' ')
         return "{parallelism} {protocol} flows, {}{}".format(qdisc_label, ', no offloading' if r['disable_offloading'] else '', **r)
 
     def analysis_grouping_fn(self, r):
