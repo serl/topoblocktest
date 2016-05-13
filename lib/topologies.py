@@ -155,7 +155,8 @@ def ns_chain_qdisc(qdisc, disable_offloading=False, **settings):
         for endpoint in ns.endpoints:
             # 4294967295 is the maximum unsigned 32bit int (should fit on tc, according to docs)
             if qdisc == 'netem':
-                ns.add_configure_command('tc qdisc replace dev {} root netem rate 4294967295bps limit 500000 2>&1'.format(endpoint.name))
+                # 131072 is 4294967295 bytes / 32KB => the limit/burst is the same for netem and htb, for 32KB packets
+                ns.add_configure_command('tc qdisc replace dev {} root netem rate 4294967295bps limit 131072 2>&1'.format(endpoint.name))
             elif qdisc == 'htb':
                 ns.add_configure_command('tc qdisc replace dev {} root handle 1: htb default 1 2>&1'.format(endpoint.name))
                 ns.add_configure_command('tc class replace dev {} parent 1: classid 1:1 htb rate 4294967295bps burst 4294967295b 2>&1'.format(endpoint.name))
