@@ -29,6 +29,10 @@ class iperf3m_chain_ns_qdisc_udp(collection.Collection):
     y_axes = ['throughput', 'packetput', 'cpu']
     x_title = 'number of namespaces'
 
+    filters = {
+        'paper': lambda r: r['topology'] in ('ns_chain_qdisc_netem', 'ns_chain_qdisc_htb'),
+    }
+
     def get_link_label(self, r):
         link_label = 'direct-veth'
         if r['use_ovs']:
