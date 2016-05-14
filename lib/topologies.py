@@ -151,7 +151,7 @@ def ns_chain_qdisc(qdisc, tera, disable_offloading=False, **settings):
     ns_chain_add_routing(m, nss, base_net)
 
     # 4294967295 is the maximum unsigned 32bit int (should fit on tc, according to docs)
-    limit = 4294967295 if not tera else 10**12 / 8
+    limit = 4294967295 if not tera else 10**12 // 8
 
     m.get_script()  # look, I'm hacking my code! (this will force autogeneration of endpoint names)
     for ns in nss:
@@ -163,6 +163,7 @@ def ns_chain_qdisc(qdisc, tera, disable_offloading=False, **settings):
                 limit_burst = int(round(limit / (packet_size + 29), 0))  # to be fair with HTB, this should be the same (netem takes packets instead of bytes)
                 limit_burst = limit_burst if limit_burst < 2147483647 else 2147483647
                 # that is max signed 32bit int. not at all clear what netem does, this value seems to be well-swallowed
+                # netem does not like an uint64 for the rate; the effect is something like "value % uint32.max".
                 ns.add_configure_command('tc qdisc replace dev {} root netem rate {}bps limit {} 2>&1'.format(endpoint.name, limit, limit_burst))
             elif qdisc == 'htb':
                 ns.add_configure_command('tc qdisc replace dev {} root handle 1: htb default 1 2>&1'.format(endpoint.name))
