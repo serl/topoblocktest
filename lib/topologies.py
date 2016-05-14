@@ -161,6 +161,8 @@ def ns_chain_qdisc(qdisc, tera, disable_offloading=False, **settings):
                 if packet_size == 'default':
                     packet_size = 2**16  # jumbo packets
                 limit_burst = int(round(limit / (packet_size + 29), 0))  # to be fair with HTB, this should be the same (netem takes packets instead of bytes)
+                limit_burst = limit_burst if limit_burst < 2147483647 else 2147483647
+                # that is max signed 32bit int. not at all clear what netem does, this value seems to be well-swallowed
                 ns.add_configure_command('tc qdisc replace dev {} root netem rate {}bps limit {} 2>&1'.format(endpoint.name, limit, limit_burst))
             elif qdisc == 'htb':
                 ns.add_configure_command('tc qdisc replace dev {} root handle 1: htb default 1 2>&1'.format(endpoint.name))
