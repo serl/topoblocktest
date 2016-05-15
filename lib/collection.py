@@ -7,6 +7,7 @@ class Collection:
     constants = {}
     variables = {}
     x_axis = None  # key on result dict
+    x_limits = None # tuple (min, max)
     y_axes = []  # strings or YAx subclasses (see `plot` module)
     x_title = None
     filters = {}  # name => skip_fn

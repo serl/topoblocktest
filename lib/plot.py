@@ -245,6 +245,9 @@ def dynamic(collection, export=None):
                 togglable_legend.add(legline, origlines)
         row_id += 1
 
+    if collection.x_limits is not None:
+        plt.gca().set_xlim(collection.x_limits)
+
     if export is not None:
         fig.set_size_inches(len(y_axes) * 7.5, len(rows_grouped) * 4)
         fig.savefig(export, bbox_inches='tight')
