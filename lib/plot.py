@@ -234,6 +234,8 @@ def dynamic(collection, export=None):
                 line, two, three = mpl_ax.errorbar(x_values[y_ax_index], plot_values[y_ax_index], yerr=plot_errors[y_ax_index], label=label, **kwargs)
                 series_lines.extend((line,) + two + three)
                 mpl_ax.set_xlabel(collection.x_title)
+                if collection.x_limits is not None:
+                    mpl_ax.set_xlim(collection.x_limits)
                 y_ax.format_ax(mpl_ax)
                 if mpl_ax.get_xlim()[1] > 1000:
                     mpl_ax.xaxis.set_major_formatter(PrefixFormatter())
@@ -244,9 +246,6 @@ def dynamic(collection, export=None):
             for legline, origlines in zip(legend.get_texts(), lines):
                 togglable_legend.add(legline, origlines)
         row_id += 1
-
-    if collection.x_limits is not None:
-        plt.gca().set_xlim(collection.x_limits)
 
     if export is not None:
         fig.set_size_inches(len(y_axes) * 7.5, len(rows_grouped) * 4)
