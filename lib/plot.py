@@ -237,7 +237,7 @@ def dynamic(collection, export=None):
                 if collection.x_limits is not None:
                     mpl_ax.set_xlim(collection.x_limits)
                 y_ax.format_ax(mpl_ax)
-                if mpl_ax.get_xlim()[1] > 1000:
+                if mpl_ax.get_xlim()[1] > 10000:
                     mpl_ax.xaxis.set_major_formatter(PrefixFormatter())
             lines.append(series_lines)
 

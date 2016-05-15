@@ -25,6 +25,7 @@ class iperf3m_chain_ns_udp(collection.Collection):
             return True
 
     x_axis = 'chain_len'
+    x_limits = (1, 21)
     y_axes = ['throughput', 'packetput', 'cpu']
     x_title = 'number of namespaces'
 
@@ -33,20 +34,23 @@ class iperf3m_chain_ns_udp(collection.Collection):
     }
 
     def get_link_label(self, r):
-        link_label = 'direct-veth'
+        link_label = 'veth'
         if r['use_ovs']:
             link_label = 'ovs-{ovs_ns_links}'.format(**r)
         return link_label
 
     def analysis_row_label_fn(self, r):
-        return "{} {parallelism} (pkt: {packet_size})".format(self.get_link_label(r), **r)
+        link_label = self.get_link_label(r)
+        if link_label == 'ovs-port':
+            link_label = 'OvS'
+        return "{parallelism} UDP flows over {}".format(link_label, **r)
 
     def analysis_grouping_fn(self, r):
         return (r['packet_size'],)
 
     def plot_style_fn(self, r, group_id):
         colors = {
-            'direct-veth': 'purple',
+            'veth': 'purple',
             'ovs-port': 'green',
             'ovs-veth': 'black',
         }

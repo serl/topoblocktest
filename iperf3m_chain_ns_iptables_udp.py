@@ -23,6 +23,7 @@ class iperf3m_chain_ns_iptables_udp(collection.Collection):
     ])
 
     x_axis = 'chain_len'
+    x_limits = (1.5, 10.5)
     y_axes = ['throughput', 'packetput', 'cpu']
     x_title = 'number of namespaces'
 
@@ -31,7 +32,7 @@ class iperf3m_chain_ns_iptables_udp(collection.Collection):
     }
 
     def analysis_row_label_fn(self, r):
-        return "{parallelism} {protocol} flows, {iptables_rules_len} {iptables_type} rules {}".format(', no offloading' if r['disable_offloading'] else '', **r)
+        return "{parallelism} UDP flows, {iptables_rules_len} {iptables_type} rules {}".format(', no offloading' if r['disable_offloading'] else '', **r)
 
     def analysis_grouping_fn(self, r):
         return (r['iptables_rules_len'],)

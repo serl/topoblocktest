@@ -29,7 +29,7 @@ class iperf3m_veth_udp_packetsize(collection.Collection):
     }
 
     def analysis_row_label_fn(self, r):
-        return "{parallelism} {protocol} flows{}{}".format(', no offloading' if r['disable_offloading'] else '', ', affinity' if r['affinity'] else '', **r)
+        return "{parallelism} UDP flows{}{}".format(', no offloading' if r['disable_offloading'] else '', ', affinity' if r['affinity'] else '', **r)
 
     def analysis_grouping_fn(self, r):
         return (r['affinity'] + 2 * r['disable_offloading'],)

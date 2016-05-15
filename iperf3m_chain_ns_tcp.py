@@ -25,42 +25,39 @@ class iperf3m_chain_ns_tcp(collection.Collection):
             return True
 
     x_axis = 'chain_len'
+    x_limits = (1, 21)
     y_axes = ['throughput', 'cpu']
     x_title = 'number of namespaces'
 
+    filters = {
+        'paper': lambda r: r['parallelism'] != 8 or (r['use_ovs'] and r['ovs_ns_links'] == 'veth'),
+    }
+
     def get_link_label(self, r):
-        link_label = 'direct-veth'
+        link_label = 'veth'
         if r['use_ovs']:
             link_label = 'ovs-{ovs_ns_links}'.format(**r)
         return link_label
 
     def analysis_row_label_fn(self, r):
-        zerocopy_label = ' zerocopy' if r['zerocopy'] else ''
-        return "{} {parallelism}{}".format(self.get_link_label(r), zerocopy_label, **r)
+        zerocopy_label = ', zerocopy' if r['zerocopy'] else ''
+        link_label = self.get_link_label(r)
+        if link_label == 'ovs-port':
+            link_label = 'OvS'
+        return "{parallelism} TCP flows over {}{}".format(link_label, zerocopy_label, **r)
 
     def analysis_grouping_fn(self, r):
-        return (int(r['zerocopy']),)
+        return (r['parallelism'],)
 
     def plot_style_fn(self, r, group_id):
         colors = {
-            'direct-veth': 'purple',
-            'ovs-port': 'green',
-            'ovs-veth': 'black',
+            'veth': 'red',
+            'ovs-port': 'black',
+            'ovs-veth': 'gray',
         }
-        if r['parallelism'] == 1:
-            marker = 's'
-        elif r['parallelism'] == 4:
-            marker = '^'
-        elif r['parallelism'] == 6:
-            marker = 'v'
-        elif r['parallelism'] == 8:
-            marker = 'o'
-        elif r['parallelism'] == 12:
-            marker = '.'
         return {
             'color': colors[self.get_link_label(r)],
-            'linestyle': '--' if r['disable_offloading'] else '-',
-            'marker': marker,
+            'linestyle': '--' if r['zerocopy'] else '-',
         }
 
 

@@ -25,20 +25,20 @@ class iperf3m_chain_ovs_tcp(collection.Collection):
             return True
 
     x_axis = 'chain_len'
+    x_limits = (0, 21)
     y_axes = ['throughput', 'cpu']
-    x_title = 'number of OVS bridges'
+    x_title = 'number of OvS switches'
 
     filters = {
         'no-veth': lambda r: r['ovs_ns_links'] == 'veth',
-        'paper': lambda r: r['disable_offloading'],
+        'paper': lambda r: r['disable_offloading'] or r['parallelism'] != 8 or (r['ovs_ns_links'] == 'port' and r['ovs_ovs_links'] == 'veth') or (r['ovs_ns_links'] == 'veth' and r['ovs_ovs_links'] == 'patch'),
     }
 
     def get_link_label(self, r):
         return '{ovs_ovs_links}-{ovs_ns_links}'.format(**r)
 
     def analysis_row_label_fn(self, r):
-        zerocopy_label = ' zerocopy' if r['zerocopy'] else ''
-        return "{} {parallelism}{} ({}offloading)".format(self.get_link_label(r), zerocopy_label, 'no ' if r['disable_offloading'] else '', **r)
+        return "{parallelism} flows over {}{}{}".format(self.get_link_label(r), ', zerocopy' if r['zerocopy'] else '', ', no offloading' if r['disable_offloading'] else '', **r)
 
     def analysis_grouping_fn(self, r):
         groups = []
@@ -68,14 +68,14 @@ class iperf3m_chain_ovs_tcp(collection.Collection):
 
         linestyle = '-'
         if r['disable_offloading']:
-            linestyle = '--'
-        elif r['zerocopy']:
             linestyle = ':'
+        elif r['zerocopy']:
+            linestyle = '--'
 
         return {
             'color': colors[self.get_link_label(r)],
             'linestyle': linestyle,
-            'marker': marker,
+            # 'marker': marker,
         }
 
 

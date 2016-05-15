@@ -26,11 +26,12 @@ class iperf3m_chain_ns_qdisc_udp(collection.Collection):
             return True
 
     x_axis = 'chain_len'
+    x_limits = (1.5, 10.5)
     y_axes = ['throughput', 'packetput', 'cpu']
     x_title = 'number of namespaces'
 
     filters = {
-        'paper': lambda r: r['topology'] in ('ns_chain_qdisc_netem', 'ns_chain_qdisc_htb'),
+        'paper': lambda r: r['topology'] not in ('ns_chain', 'ns_chain_qdisc_htb_tera'),
     }
 
     def get_link_label(self, r):
@@ -43,7 +44,7 @@ class iperf3m_chain_ns_qdisc_udp(collection.Collection):
         qdisc_label = 'pfifo_fast'
         if r['topology'].startswith('ns_chain_qdisc_'):
             qdisc_label = re.sub('^ns_chain_qdisc_', '', r['topology']).replace('_', ' ')
-        return "{parallelism} {protocol} flows, {}{}".format(qdisc_label, ', no offloading' if r['disable_offloading'] else '', **r)
+        return "{parallelism} UDP flows, {}{}".format(qdisc_label, ', no offloading' if r['disable_offloading'] else '', **r)
 
     def analysis_grouping_fn(self, r):
         topo_names = list(self.variables['topology'])
