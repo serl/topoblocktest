@@ -28,7 +28,8 @@ class iperf3m_chain_ns_iptables_udp(collection.Collection):
     x_title = 'number of namespaces'
 
     filters = {
-        'paper': lambda r: r['iptables_type'] != 'stateful',
+        'paper_10': lambda r: r['iptables_type'] != 'stateful' or r['iptables_rules_len'] != 10,
+        'paper_100': lambda r: r['iptables_type'] != 'stateful' or r['iptables_rules_len'] != 100,
     }
 
     def analysis_row_label_fn(self, r):

@@ -183,6 +183,8 @@ def dynamic(collection, export=None):
     togglable_legend = TogglableLegend(fig)
     row_id = 0
     for axes_row in all_axes:
+        if len(y_axes) == 1:
+            axes_row = (axes_row,)
         while row_id not in rows_grouped:
             row_id += 1
         lines = []
@@ -224,6 +226,8 @@ def dynamic(collection, export=None):
 
             # draw plot
             basestyle = {'linestyle': '-', 'markersize': 7}
+            if export:
+                basestyle['linewidth'] = 2
             kwargs = basestyle.copy()
             kwargs.update(collection.plot_style_fn(row_element, row_id))
             series_lines = []
@@ -241,14 +245,17 @@ def dynamic(collection, export=None):
                     mpl_ax.xaxis.set_major_formatter(PrefixFormatter())
             lines.append(series_lines)
 
-        legend = mpl_ax.legend(bbox_to_anchor=(1, 1), loc=2, fontsize='x-small')
+        if export:
+            legend = mpl_ax.legend(loc=collection.plot_legend_loc, fontsize='x-small')
+        else:
+            legend = mpl_ax.legend(bbox_to_anchor=(1, 1), loc=2, fontsize='x-small')
         if legend is not None:  # it may happen, if we have no series on that axis :/
             for legline, origlines in zip(legend.get_texts(), lines):
                 togglable_legend.add(legline, origlines)
         row_id += 1
 
     if export is not None:
-        fig.set_size_inches(len(y_axes) * 7.5, len(rows_grouped) * 4)
+        fig.set_size_inches(len(y_axes) * 6.5, len(rows_grouped) * 3.2)
         fig.savefig(export, bbox_inches='tight')
     else:
         plt.subplots_adjust(left=0.05, right=0.82, top=0.95, bottom=0.1)

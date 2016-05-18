@@ -7,10 +7,11 @@ class Collection:
     constants = {}
     variables = {}
     x_axis = None  # key on result dict
-    x_limits = None # tuple (min, max)
+    x_limits = None  # tuple (min, max)
     y_axes = []  # strings or YAx subclasses (see `plot` module)
     x_title = None
     filters = {}  # name => skip_fn
+    plot_legend_loc = 1
 
     def __init__(self):
         self.__custom_filters = []
@@ -59,9 +60,10 @@ class Collection:
         for key, values in self.variables.items():
             self.__db_query = [r for r in self.__db_query if r[key] in values]
         self.__db_query = [r for r in self.__db_query if not self.generation_skip_fn(r)]
+        analysis_query = self.__db_query
         for fil in self.__custom_filters:
-            self.__db_query = [r for r in self.__db_query if not fil(r)]
-        return analyze.get_analysis_table(self.__db_query, self.x_axis, self.analysis_row_info_fn, self.analysis_grouping_fn)
+            analysis_query = [r for r in analysis_query if not fil(r)]
+        return analyze.get_analysis_table(analysis_query, self.x_axis, self.analysis_row_info_fn, self.analysis_grouping_fn)
 
     def is_relative(self):
         return len(self.reference) > 0
@@ -139,7 +141,9 @@ class Collection:
         parser.add_argument('--out', help='redirect the output to file')
         if len(self.filters) > 0:
             parser.add_argument('--filter', choices=self.filters.keys(), nargs='+', help='use a predefined filter to read less data (depends on the collection). Does not work for `generate`.')
-        parser.add_argument('--relative-to', nargs='+', metavar='attribute=value', help='output relative values instead of absolute. Must specify values in the form "attribute=value", for example "parallelism=1"')
+        parser.add_argument('--plot-y-axes', nargs='+', help='specify optionally which y-axes you want on the figure.')
+        parser.add_argument('--plot-legend-loc', help='specify optionally the loc parameter for matplotlib legend.')
+        parser.add_argument('--relative-to', nargs='+', metavar='attribute=value', help='output relative values instead of absolute. Must specify values in the form "attribute=value", for example "parallelism=1".')
         args = parser.parse_args()
 
         if hasattr(args, 'filter') and args.filter is not None:
@@ -181,6 +185,11 @@ class Collection:
                     raise ValueError('"{}" is not an acceptable value for "{}". Good values are: {}.'.format(attr_value, attr_name, self.variables[attr_name]))
 
                 self.reference[attr_name] = attr_value
+
+        if args.plot_y_axes is not None:
+            self.y_axes = args.plot_y_axes
+        if args.plot_legend_loc is not None:
+            self.plot_legend_loc = args.plot_legend_loc
 
         action_kwargs = {}
         if args.out is not None:
