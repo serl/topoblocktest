@@ -34,7 +34,7 @@ class iperf3m_chain_ns_iptables_fixed_udp(collection.Collection):
         return "{:>3}{:>6}".format(r['parallelism'], (r['chain_len'] - 1) * r['iptables_rules_len'])
 
     def analysis_row_label_fn(self, r):
-        return "{parallelism} UDP flows, {} total {iptables_type} rules {}".format(', no offloading' if r['disable_offloading'] else '', (r['chain_len'] - 1) * r['iptables_rules_len'], **r)
+        return "{parallelism} UDP flows{}, {} total {iptables_type} rules".format(', no offloading' if r['disable_offloading'] else '', (r['chain_len'] - 1) * r['iptables_rules_len'], **r)
 
     def analysis_grouping_fn(self, r):
         return ((r['chain_len'] - 1) * r['iptables_rules_len'],)
