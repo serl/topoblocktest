@@ -16,7 +16,7 @@ class iperf3m_veth_udp_iptables(collection.Collection):
         'packet_size': 32739,
     }
     variables = OrderedDict([
-        ('iptables_rules_len', (0, 10, 100, 500, 1000)),
+        ('iptables_rules_len', (0, 10, 100, 500, 1000, 5000)),
 
         ('parallelism', (1, 4, 6, 8)),
         ('iptables_type', ('stateless', 'stateful')),

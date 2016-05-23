@@ -19,16 +19,22 @@ class iperf3m_chain_ns_iptables_fixed_udp(collection.Collection):
         ('chain_len', (2, 3, 5, 11)),
 
         ('parallelism', (1, 4, 6, 8)),
-        ('iptables_rules_len', (10, 25, 50, 100, 250, 500, 1000)),
+        ('iptables_rules_len', (10, 25, 50, 100, 250, 500, 1000, 1250, 2500, 5000)),
     ])
 
     def generation_skip_fn(self, settings):
-        return (settings['chain_len'] - 1) * settings['iptables_rules_len'] not in (100, 1000)
+        return (settings['chain_len'] - 1) * settings['iptables_rules_len'] not in (100, 1000, 5000)
 
     x_axis = 'chain_len'
     x_limits = (1.5, 11.5)
     y_axes = ['throughput', 'packetput', 'cpu']
     x_title = 'number of namespaces'
+
+    filters = {
+        '100': lambda r: (r['chain_len'] - 1) * r['iptables_rules_len'] != 100,
+        '1000': lambda r: (r['chain_len'] - 1) * r['iptables_rules_len'] != 1000,
+        '5000': lambda r: (r['chain_len'] - 1) * r['iptables_rules_len'] != 5000,
+    }
 
     def analysis_row_key_fn(self, r):
         return "{:>3}{:>6}".format(r['parallelism'], (r['chain_len'] - 1) * r['iptables_rules_len'])
