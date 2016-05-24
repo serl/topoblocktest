@@ -16,7 +16,7 @@ python iperf3m_veth_udp_packetsize.py --filter paper --plot-y-axes throughput --
 python iperf3m_veth_udp_packetsize.py --filter paper --plot-y-axes packetput --out $OUTPUT_DIR/iperf_veth_udp_packetsize_packetput.svg
 
 # OvS
-python iperf3m_chain_ovs_tcp.py --filter paper --plot-y-axes throughput:20000000000,200000000000 --out $OUTPUT_DIR/iperf_chain_ovs_tcp.svg
+python iperf3m_chain_ovs_tcp.py --filter paper --plot-y-axes throughput:30000000000,200000000000 --out $OUTPUT_DIR/iperf_chain_ovs_tcp.svg
 python iperf3m_chain_ovs_tcp.py --filter paper --plot-y-axes throughput:-60,30 --relative-to ovs_ovs_links=patch ovs_ns_links=port --out $OUTPUT_DIR/iperf_chain_ovs_tcp_rel_patchport.svg
 
 # NS
