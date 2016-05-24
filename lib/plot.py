@@ -63,15 +63,26 @@ class TogglableLegend:
 
 
 class YAx:
+    name = None
+    unit = None
 
     @classmethod
     def get_instance(cls, attr_name, is_relative):
+        ylimits = None
+        if ':' in attr_name:
+            attr_name, str_ylimits = attr_name.split(':', 1)
+            try:
+                ylimits = tuple(map(float, str_ylimits.split(',', 1)))
+            except ValueError:
+                pass
         if attr_name == 'throughput':
-            return ThroughputAx(is_relative)
+            instance = ThroughputAx(is_relative)
         elif attr_name == 'cpu':
-            return CpuAx(is_relative)
+            instance = CpuAx(is_relative)
         elif attr_name == 'packetput':
-            return PacketputAx(is_relative)
+            instance = PacketputAx(is_relative)
+        instance.ylimits = ylimits
+        return instance
 
     def __init__(self, is_relative):
         self.is_relative = is_relative
@@ -80,10 +91,21 @@ class YAx:
         raise ValueError('Must be implemented in subclass')
 
     def format_ax(self, ax):
-        pass
+        ax.grid(True)
+        if self.ylimits is not None:
+            ax.set_ylim(self.ylimits)
+        if self.name is not None:
+            ylabel = self.name
+            if self.is_relative:
+                ylabel += ' (% gain relative to ref)'
+            elif self.unit is not None:
+                ylabel += ' ({})'.format(self.unit)
+            ax.set_ylabel(ylabel)
 
 
 class ThroughputAx(YAx):
+    name = 'throughput'
+    unit = 'b/s'
 
     def get_value(self, r):
         try:
@@ -92,15 +114,14 @@ class ThroughputAx(YAx):
             return None
 
     def format_ax(self, ax):
-        if self.is_relative:
-            ax.set_ylabel('throughput (% gain relative to ref)')
-        else:
+        super().format_ax(ax)
+        if not self.is_relative:
             ax.yaxis.set_major_formatter(PrefixFormatter())
-            ax.set_ylabel('throughput (b/s)')
-        ax.grid(True)
 
 
 class CpuAx(YAx):
+    name = 'cpu utilization'
+    unit = '%'
 
     def get_value(self, r):
         try:
@@ -109,15 +130,14 @@ class CpuAx(YAx):
             return None
 
     def format_ax(self, ax):
-        if self.is_relative:
-            ax.set_ylabel('cpu utilization (% gain relative to ref)')
-        else:
-            ax.set_ylabel('cpu utilization (%)')
+        super().format_ax(ax)
+        if not self.is_relative:
             ax.axis([None, None, 0, 102])
-        ax.grid(True)
 
 
 class PacketputAx(YAx):
+    name = 'throughput'
+    unit = 'pps'
 
     def get_value(self, r):
         try:
@@ -126,12 +146,9 @@ class PacketputAx(YAx):
             return None
 
     def format_ax(self, ax):
-        if self.is_relative:
-            ax.set_ylabel('throughput (% gain relative to ref)')
-        else:
+        super().format_ax(ax)
+        if not self.is_relative:
             ax.yaxis.set_major_formatter(PrefixFormatter())
-            ax.set_ylabel('throughput (pps)')
-        ax.grid(True)
 
 
 class PrefixFormatter(matplotlib.ticker.Formatter):
