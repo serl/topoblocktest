@@ -31,7 +31,7 @@ class iperf3m_chain_ns_qdisc_udp(collection.Collection):
     x_title = 'number of namespaces'
 
     filters = {
-        'paper': lambda r: r['topology'] != 'ns_chain_qdisc_htb_tera',
+        'paper': lambda r: r['topology'] != 'ns_chain_qdisc_htb_tera' or r['parallelism'] > 8,
     }
 
     def get_link_label(self, r):

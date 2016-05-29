@@ -31,6 +31,7 @@ class iperf3m_chain_ns_udp(collection.Collection):
 
     filters = {
         'rightsize': lambda r: r['packet_size'] != 32739,
+        'paper': lambda r: r['packet_size'] != 32739 or r['parallelism'] > 8 or (r['use_ovs'] and r['ovs_ns_links'] == 'veth'),
     }
 
     def get_link_label(self, r):
@@ -50,23 +51,25 @@ class iperf3m_chain_ns_udp(collection.Collection):
 
     def plot_style_fn(self, r, group_id):
         colors = {
-            'veth': 'purple',
-            'ovs-port': 'green',
-            'ovs-veth': 'black',
+            1: 'black',
+            4: 'green',
+            6: 'red',
+            8: 'orange',
+            12: 'blue',
         }
-        if r['parallelism'] == 1:
+        linestyles = {
+            'veth': '-',
+            'ovs-port': '--',
+            'ovs-veth': ':',
+        }
+        marker = ''
+        if r['packet_size'] == 65507:
             marker = 's'
-        elif r['parallelism'] == 4:
+        elif r['packet_size'] == 36:
             marker = '^'
-        elif r['parallelism'] == 6:
-            marker = 'v'
-        elif r['parallelism'] == 8:
-            marker = 'o'
-        elif r['parallelism'] == 12:
-            marker = '.'
         return {
-            'color': colors[self.get_link_label(r)],
-            'linestyle': '--' if r['disable_offloading'] else '-',
+            'color': colors[r['parallelism']],
+            'linestyle': linestyles[self.get_link_label(r)],
             'marker': marker,
         }
 
