@@ -31,7 +31,8 @@ class iperf3m_chain_ns_udp(collection.Collection):
 
     filters = {
         'rightsize': lambda r: r['packet_size'] != 32739,
-        'paper': lambda r: r['packet_size'] != 32739 or r['parallelism'] > 8 or (r['use_ovs'] and r['ovs_ns_links'] == 'veth'),
+        'paper': lambda r: r['packet_size'] != 32739 or r['parallelism'] != 8 or (r['use_ovs'] and r['ovs_ns_links'] == 'veth'),
+        'paper-parallelism': lambda r: r['packet_size'] != 32739 or r['parallelism'] > 8 or (r['use_ovs'] and r['ovs_ns_links'] == 'veth'),
     }
 
     def get_link_label(self, r):
@@ -50,6 +51,15 @@ class iperf3m_chain_ns_udp(collection.Collection):
         return (r['packet_size'],)
 
     def plot_style_fn(self, r, group_id):
+        if self.is_filter_selected('paper'):
+            colors = {
+                'veth': 'red',
+                'ovs-port': 'black',
+                'ovs-veth': 'gray',
+            }
+            return {
+                'color': colors[self.get_link_label(r)],
+            }
         colors = {
             1: 'black',
             4: 'green',

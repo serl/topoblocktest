@@ -134,6 +134,9 @@ class Collection:
     def plot(self, export=None):
         plot.dynamic(self, export)
 
+    def is_filter_selected(self, filter_name):
+        return self.filters[filter_name] in self.__custom_filters
+
     def parse_shell_arguments(self):
         import argparse
         parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
