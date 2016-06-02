@@ -32,13 +32,14 @@ class iperf3m_chain_ovs_tcp(collection.Collection):
     filters = {
         'no-veth': lambda r: r['ovs_ns_links'] == 'veth',
         'paper': lambda r: r['disable_offloading'] or r['parallelism'] != 8 or (r['ovs_ns_links'] == 'port' and r['ovs_ovs_links'] == 'veth') or (r['ovs_ns_links'] == 'veth' and r['ovs_ovs_links'] == 'patch'),
+        'presentation': lambda r: r['disable_offloading'] or r['parallelism'] != 8 or (r['ovs_ns_links'] == 'port' and r['ovs_ovs_links'] == 'veth') or (r['ovs_ns_links'] == 'veth' and r['ovs_ovs_links'] == 'patch') or r['zerocopy'],
     }
 
     def get_link_label(self, r):
         return '{ovs_ovs_links}-{ovs_ns_links}'.format(**r)
 
     def analysis_row_label_fn(self, r):
-        return "{parallelism} flows over {}{}{}".format(self.get_link_label(r), ', zerocopy' if r['zerocopy'] else '', ', no offloading' if r['disable_offloading'] else '', **r)
+        return "{parallelism} TCP flows over {}{}{}".format(self.get_link_label(r), ', zerocopy' if r['zerocopy'] else '', ', no offloading' if r['disable_offloading'] else '', **r)
 
     def analysis_grouping_fn(self, r):
         groups = []

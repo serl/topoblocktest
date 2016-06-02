@@ -22,7 +22,8 @@ python iperf3m_chain_ovs_tcp.py --filter paper --plot-y-axes throughput:-60,30 -
 # NS
 python iperf3m_chain_ns_tcp.py --filter paper --plot-y-axes throughput --out $OUTPUT_DIR/iperf_chain_ns_tcp.svg
 python iperf3m_chain_ns_tcp.py --filter paper --plot-y-axes throughput --relative-to use_ovs=False ovs_ns_links=veth chain_len=2 --out $OUTPUT_DIR/iperf_chain_ns_tcp_rel_chainlen2.svg
-python iperf3m_chain_ns_udp.py --filter paper --plot-y-axes throughput --out $OUTPUT_DIR/iperf_chain_ns_udp.svg
+python iperf3m_chain_ns_udp.py --filter paper-8 --plot-y-axes throughput --out $OUTPUT_DIR/iperf_chain_ns_udp_8flows.svg
+python iperf3m_chain_ns_udp.py --filter paper-6 --plot-y-axes throughput --out $OUTPUT_DIR/iperf_chain_ns_udp_6flows.svg
 
 # iptables
 python iperf3m_veth_udp_iptables.py --filter paper --plot-y-axes throughput --out $OUTPUT_DIR/iperf_veth_udp_iptables.svg
