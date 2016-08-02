@@ -273,7 +273,7 @@ def dynamic(collection, export=None):
         row_id += 1
 
     if export is not None:
-        fig.set_size_inches(len(y_axes) * 6.5, len(rows_grouped) * 3.2)
+        fig.set_size_inches(len(y_axes) * 6.5 * collection.plot_size_factors[0], len(rows_grouped) * 3.2 * collection.plot_size_factors[1])
         fig.savefig(export, bbox_inches='tight')
     else:
         plt.subplots_adjust(left=0.05, right=0.82, top=0.95, bottom=0.1)

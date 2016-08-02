@@ -12,6 +12,7 @@ class Collection:
     x_title = None
     filters = {}  # name => skip_fn
     plot_legend_loc = 1
+    plot_size_factors = (1, 1)
 
     def __init__(self):
         self.__custom_filters = []
@@ -145,6 +146,7 @@ class Collection:
         parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('action', choices=('generate', 'csv', 'plot'), default='plot', nargs='?', help='action to take')
         parser.add_argument('--out', help='redirect the output to file')
+        parser.add_argument('--plot-size-factors', metavar='W,H', help='reshape the exported plot changing the resulting size.')
         if len(self.filters) > 0:
             parser.add_argument('--filter', choices=self.filters.keys(), nargs='+', help='use a predefined filter to read less data (depends on the collection). Does not work for `generate`.')
         parser.add_argument('--plot-y-axes', nargs='+', help='specify optionally which y-axes you want on the figure.')
@@ -202,5 +204,8 @@ class Collection:
         action_kwargs = {}
         if args.out is not None:
             action_kwargs['export'] = args.out
+        if args.plot_size_factors is not None:
+            w, h = tuple(map(float, args.plot_size_factors.split(',')))
+            self.plot_size_factors = (w, h)
 
         getattr(self, args.action)(**action_kwargs)
