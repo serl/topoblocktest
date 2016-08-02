@@ -134,6 +134,9 @@ class Collection:
     def plot(self, export=None):
         plot.dynamic(self, export)
 
+    def plot_hook(self, ax, row_id, y_ax, x_values, y_values, y_error, style):
+        return True
+
     def is_filter_selected(self, filter_name):
         return self.filters[filter_name] in self.__custom_filters
 
@@ -146,6 +149,7 @@ class Collection:
             parser.add_argument('--filter', choices=self.filters.keys(), nargs='+', help='use a predefined filter to read less data (depends on the collection). Does not work for `generate`.')
         parser.add_argument('--plot-y-axes', nargs='+', help='specify optionally which y-axes you want on the figure.')
         parser.add_argument('--plot-legend-loc', help='specify optionally the loc parameter for matplotlib legend.')
+        parser.add_argument('--plot-hook', action='store_true', help='extend/replace the plot functionality with the custom code in the Collection implementation (if present).')
         parser.add_argument('--relative-to', nargs='+', metavar='attribute=value', help='output relative values instead of absolute. Must specify values in the form "attribute=value", for example "parallelism=1".')
         args = parser.parse_args()
 
@@ -193,6 +197,7 @@ class Collection:
             self.y_axes = args.plot_y_axes
         if args.plot_legend_loc is not None:
             self.plot_legend_loc = args.plot_legend_loc
+        self.plot_hook_enabled = args.plot_hook
 
         action_kwargs = {}
         if args.out is not None:

@@ -252,8 +252,9 @@ def dynamic(collection, export=None):
                 if not len(x_values[y_ax_index]):
                     continue
                 y_ax = y_axes[y_ax_index]
-                line, two, three = mpl_ax.errorbar(x_values[y_ax_index], plot_values[y_ax_index], yerr=plot_errors[y_ax_index], label=label, **kwargs)
-                series_lines.extend((line,) + two + three)
+                if not collection.plot_hook_enabled or collection.plot_hook(mpl_ax, row_id, y_ax, x_values[y_ax_index], plot_values[y_ax_index], plot_errors[y_ax_index], kwargs):
+                    line, two, three = mpl_ax.errorbar(x_values[y_ax_index], plot_values[y_ax_index], yerr=plot_errors[y_ax_index], label=label, **kwargs)
+                    series_lines.extend((line,) + two + three)
                 mpl_ax.set_xlabel(collection.x_title)
                 if collection.x_limits is not None:
                     mpl_ax.set_xlim(collection.x_limits)

@@ -85,6 +85,22 @@ class iperf3m_chain_ns_udp(collection.Collection):
             'marker': marker,
         }
 
+    def plot_hook(self, ax, row_id, y_ax, x_values, y_values, y_error, style):
+        if y_ax.__class__.__name__ != 'ThroughputAx':
+            return True
+        kwargs = style.copy()
+        kwargs['linestyle'] = '--'
+        import numpy as np
+        fit_x_values = np.linspace(min(x_values), max(x_values))
+        # hardcoded values, will fix.
+        kwargs['color'] = 'blue'
+        ax.plot(fit_x_values, (pow(0.8648108107, (fit_x_values - 2))) * 100.46 * 1000000000, **kwargs)  # first-second point
+        kwargs['color'] = '#00FF00'
+        ax.plot(fit_x_values, (pow(0.9381988499, (fit_x_values - 2))) * 100.46 * 1000000000, **kwargs)  # first-last point
+        kwargs['color'] = 'purple'
+        ax.plot(fit_x_values, (pow(0.9062157058, (fit_x_values - 2))) * 100.46 * 1000000000, **kwargs)  # average of first-nth points
+        return True
+
 
 if __name__ == '__main__':
     iperf3m_chain_ns_udp().parse_shell_arguments()
