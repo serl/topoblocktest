@@ -27,7 +27,8 @@ python iperf3m_chain_ns_udp.py --filter paper-parallelism --plot-y-axes throughp
 # python iperf3m_chain_ns_udp.py --filter paper-6 --plot-y-axes throughput --out $OUTPUT_DIR/iperf_chain_ns_udp_6flows.svg
 
 # iptables
-python iperf3m_veth_udp_iptables.py --filter paper --plot-y-axes throughput --out $OUTPUT_DIR/iperf_veth_udp_iptables.svg # fig 9
+#python iperf3m_veth_udp_iptables.py --filter paper --plot-y-axes throughput --out $OUTPUT_DIR/iperf_veth_udp_iptables.svg # fig 9 linear
+python iperf3m_veth_udp_iptables.py --plot-hook --plot-y-axes throughput --out $OUTPUT_DIR/iperf_veth_udp_iptables.svg # fig 9 sqrt
 # python iperf3m_chain_ns_iptables_udp.py --filter paper_10 --plot-y-axes throughput --relative-to iptables_rules_len=0 --out $OUTPUT_DIR/iperf_chain_ns_iptables_udp_10.svg
 # python iperf3m_chain_ns_iptables_udp.py --filter paper_100 --plot-y-axes throughput --relative-to iptables_rules_len=0 --out $OUTPUT_DIR/iperf_chain_ns_iptables_udp_100.svg
 python iperf3m_chain_ns_iptables_fixed_udp.py --filter 100 --plot-y-axes throughput --out $OUTPUT_DIR/iperf_chain_ns_iptables_fixed_udp_100.svg --plot-size-factor 1,0.9 # fig 10a
