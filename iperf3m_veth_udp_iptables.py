@@ -51,7 +51,7 @@ class iperf3m_veth_udp_iptables(collection.Collection):
         # trick everything else so to have a nice fake scale
         new_x_values = [math.sqrt(val) for i, val in enumerate(x_values)]
         max_new_x_values = max(new_x_values)
-        self.x_limits = (-max_new_x_values * .03, max_new_x_values * 1.03)
+        self.x_limits = (0, max_new_x_values * 1.03)
         ax.set_xticks(new_x_values)
         ax.set_xticklabels(x_values)
         for i, value in enumerate(x_values):  # must do like this, as x_value must retain its reference
