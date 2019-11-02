@@ -1,6 +1,9 @@
 # TopoBlockTest
 
 
+**WARNING: the numpy version (1.10.4) used in this project has some known vulnerabilities. Use at your own risk, or upgrade it in `requirements.txt`.**
+
+
 ## Installation
 
 You can choose either to run everything on a virtual machine via Vagrant or run on your own system. In both cases, the deploy will take some time, because of the compilation of some Python dependencies.
